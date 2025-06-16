@@ -13,6 +13,13 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Dummy existing users to check for duplicates
+  const existingUsers = [
+    { email: 'user@example.com', username: 'johndoe' },
+    { email: 'admin@example.com', username: 'admin' },
+    { email: 'chef@example.com', username: 'chefmaria' }
+  ];
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -68,6 +75,54 @@ const Register = () => {
     setIsLoading(true);
     
     try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Check for duplicate email or username
+      const emailExists = existingUsers.some(user => user.email === formData.email);
+      const usernameExists = existingUsers.some(user => user.username === formData.username);
+
+      if (emailExists) {
+        setErrors({ general: 'Email already exists. Please use a different email.' });
+        setIsLoading(false);
+        return;
+      }
+
+      if (usernameExists) {
+        setErrors({ general: 'Username already taken. Please choose a different username.' });
+        setIsLoading(false);
+        return;
+      }
+
+      // Simulate successful registration
+      const newUserId = Date.now(); // Simple ID generation
+      const mockToken = 'dummy-jwt-token-' + newUserId;
+      const newUser = {
+        id: newUserId,
+        username: formData.username,
+        email: formData.email,
+        name: formData.username, // Using username as display name
+        role: 'user',
+        createdAt: new Date().toISOString()
+      };
+
+      // Store dummy data in localStorage (same as original)
+      localStorage.setItem('token', mockToken);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+
+    } catch (error) {
+      // Simulate network error
+      setErrors({ general: 'Network error. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
+
+    /* 
+    // Original backend API call - commented out
+    try {
       const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: {
@@ -94,6 +149,7 @@ const Register = () => {
     } finally {
       setIsLoading(false);
     }
+    */
   };
 
   return (
@@ -102,6 +158,19 @@ const Register = () => {
         <div className="auth-header">
           <h2>Create Account</h2>
           <p>Join RecipeShare and start cooking!</p>
+        </div>
+        
+        {/* Demo info */}
+        <div style={{ 
+          backgroundColor: '#f3e5f5', 
+          padding: '12px', 
+          marginBottom: '20px', 
+          borderRadius: '4px',
+          fontSize: '14px',
+          color: '#7b1fa2'
+        }}>
+          <strong>Demo Mode:</strong> Try registering with any new email/username combination!<br/>
+          <small>Existing: user@example.com, admin@example.com, chef@example.com</small>
         </div>
         
         {errors.general && (
