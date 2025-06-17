@@ -7,7 +7,13 @@ const Register = () => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    userType: 'user', // New field for user type
+    firstName: '',
+    lastName: '',
+    bio: '', // For chef profiles
+    experience: '', // For chef profiles
+    speciality: '' // For chef profiles
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +21,7 @@ const Register = () => {
 
   // Dummy existing users to check for duplicates
   const existingUsers = [
-    { email: 'user@example.com', username: 'johndoe' },
+    { email: 'ash@gmail.com', username: 'ash' },
     { email: 'admin@example.com', username: 'admin' },
     { email: 'chef@example.com', username: 'chefmaria' }
   ];
@@ -41,6 +47,14 @@ const Register = () => {
     } else if (formData.username.length < 3) {
       newErrors.username = 'Username must be at least 3 characters';
     }
+
+    if (!formData.firstName) {
+      newErrors.firstName = 'First name is required';
+    }
+
+    if (!formData.lastName) {
+      newErrors.lastName = 'Last name is required';
+    }
     
     if (!formData.email) {
       newErrors.email = 'Email is required';
@@ -58,6 +72,19 @@ const Register = () => {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    // Chef-specific validations
+    if (formData.userType === 'chef') {
+      if (!formData.bio) {
+        newErrors.bio = 'Bio is required for chef accounts';
+      }
+      if (!formData.experience) {
+        newErrors.experience = 'Experience is required for chef accounts';
+      }
+      if (!formData.speciality) {
+        newErrors.speciality = 'Specialty is required for chef accounts';
+      }
     }
     
     return newErrors;
@@ -95,18 +122,27 @@ const Register = () => {
       }
 
       // Simulate successful registration
-      const newUserId = Date.now(); // Simple ID generation
+      const newUserId = Date.now();
       const mockToken = 'dummy-jwt-token-' + newUserId;
       const newUser = {
         id: newUserId,
         username: formData.username,
         email: formData.email,
-        name: formData.username, // Using username as display name
-        role: 'user',
-        createdAt: new Date().toISOString()
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        name: `${formData.firstName} ${formData.lastName}`,
+        role: formData.userType,
+        userType: formData.userType,
+        bio: formData.bio || '',
+        experience: formData.experience || '',
+        speciality: formData.speciality || '',
+        createdAt: new Date().toISOString(),
+        recipesCount: 0,
+        followersCount: 0,
+        isVerified: formData.userType === 'chef' // Auto-verify chefs for demo
       };
 
-      // Store dummy data in localStorage (same as original)
+      // Store dummy data in localStorage
       localStorage.setItem('token', mockToken);
       localStorage.setItem('user', JSON.stringify(newUser));
       
@@ -114,42 +150,10 @@ const Register = () => {
       navigate('/dashboard');
 
     } catch (error) {
-      // Simulate network error
       setErrors({ general: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);
     }
-
-    /* 
-    // Original backend API call - commented out
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/dashboard');
-      } else {
-        setErrors({ general: data.message || 'Registration failed' });
-      }
-    } catch (error) {
-      setErrors({ general: 'Network error. Please try again.' });
-    } finally {
-      setIsLoading(false);
-    }
-    */
   };
 
   return (
@@ -169,8 +173,8 @@ const Register = () => {
           fontSize: '14px',
           color: '#7b1fa2'
         }}>
-          <strong>Demo Mode:</strong> Try registering with any new email/username combination!<br/>
-          <small>Existing: user@example.com, admin@example.com, chef@example.com</small>
+          <strong>Demo Mode:</strong> Try registering as User or Chef!<br/>
+          <small>Existing: ash@gmail.com, admin@example.com, chef@example.com</small>
         </div>
         
         {errors.general && (
@@ -178,6 +182,36 @@ const Register = () => {
         )}
         
         <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="firstName">First Name</label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                className={errors.firstName ? 'error' : ''}
+                placeholder="First name"
+              />
+              {errors.firstName && <span className="error-text">{errors.firstName}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="lastName">Last Name</label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                className={errors.lastName ? 'error' : ''}
+                placeholder="Last name"
+              />
+              {errors.lastName && <span className="error-text">{errors.lastName}</span>}
+            </div>
+          </div>
+
           <div className="form-group">
             <label htmlFor="username">Username</label>
             <input
@@ -207,31 +241,111 @@ const Register = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
+            <label htmlFor="userType">Account Type</label>
+            <select
+              id="userType"
+              name="userType"
+              value={formData.userType}
               onChange={handleChange}
-              className={errors.password ? 'error' : ''}
-              placeholder="Create a password"
-            />
-            {errors.password && <span className="error-text">{errors.password}</span>}
+              className="form-select"
+            >
+              <option value="user">Home Cook</option>
+              <option value="chef">Professional Chef</option>
+            </select>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className={errors.confirmPassword ? 'error' : ''}
-              placeholder="Confirm your password"
-            />
-            {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
+          {/* Chef-specific fields */}
+          {formData.userType === 'chef' && (
+            <>
+              <div className="form-group">
+                <label htmlFor="bio">Professional Bio</label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  className={errors.bio ? 'error' : ''}
+                  placeholder="Tell us about your culinary background..."
+                  rows="3"
+                />
+                {errors.bio && <span className="error-text">{errors.bio}</span>}
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="experience">Years of Experience</label>
+                  <select
+                    id="experience"
+                    name="experience"
+                    value={formData.experience}
+                    onChange={handleChange}
+                    className={errors.experience ? 'error form-select' : 'form-select'}
+                  >
+                    <option value="">Select experience</option>
+                    <option value="1-2">1-2 years</option>
+                    <option value="3-5">3-5 years</option>
+                    <option value="6-10">6-10 years</option>
+                    <option value="10+">10+ years</option>
+                  </select>
+                  {errors.experience && <span className="error-text">{errors.experience}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="speciality">Specialty</label>
+                  <select
+                    id="speciality"
+                    name="speciality"
+                    value={formData.speciality}
+                    onChange={handleChange}
+                    className={errors.speciality ? 'error form-select' : 'form-select'}
+                  >
+                    <option value="">Select specialty</option>
+                    <option value="italian">Italian Cuisine</option>
+                    <option value="french">French Cuisine</option>
+                    <option value="asian">Asian Cuisine</option>
+                    <option value="indian">Indian Cuisine</option>
+                    <option value="mediterranean">Mediterranean</option>
+                    <option value="mexican">Mexican Cuisine</option>
+                    <option value="american">American Cuisine</option>
+                    <option value="pastry">Pastry & Desserts</option>
+                    <option value="vegetarian">Vegetarian/Vegan</option>
+                    <option value="seafood">Seafood</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {errors.speciality && <span className="error-text">{errors.speciality}</span>}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className={errors.password ? 'error' : ''}
+                placeholder="Create a password"
+              />
+              {errors.password && <span className="error-text">{errors.password}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className={errors.confirmPassword ? 'error' : ''}
+                placeholder="Confirm your password"
+              />
+              {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
+            </div>
           </div>
 
           <button 

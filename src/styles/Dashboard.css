@@ -1,0 +1,209 @@
+/* Importing MUI styles */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+.MuiContainer-root {
+  font-family: 'Roboto', sans-serif;
+}
+
+.MuiAppBar-root {
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: slideInFromTop 0.5s ease-out;
+}
+
+@keyframes slideInFromTop {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.MuiTypography-h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.MuiInputBase-root {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px 8px 40px;
+  transition: all 0.3s ease;
+}
+
+.MuiInputBase-root:hover {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+}
+
+.MuiInputBase-root:focus-within {
+  outline: none;
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3);
+}
+
+.MuiSvgIcon-root.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+}
+
+.notification-button {
+  position: relative;
+  color: #718096;
+  transition: color 0.3s ease;
+}
+
+.notification-button:hover {
+  color: #f97316;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.75rem;
+  border-radius: 50%;
+  height: 16px;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #f97316;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  transition: transform 0.3s ease;
+}
+
+.avatar:hover {
+  transform: scale(1.1);
+}
+
+.user-info span {
+  display: block;
+}
+
+.user-info .role {
+  font-size: 0.75rem;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.logout-button {
+  color: #718096;
+  transition: color 0.3s ease;
+}
+
+.logout-button:hover {
+  color: #f97316;
+}
+
+.MuiDrawer-root {
+  width: 256px;
+  background-color: #ffffff;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  height: calc(100vh - 68px);
+  padding: 16px;
+  animation: slideInFromLeft 0.5s ease-out;
+}
+
+@keyframes slideInFromLeft {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.nav-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: #718096;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.nav-button:hover {
+  background-color: #fff7ed;
+  color: #f97316;
+}
+
+.nav-button.active {
+  background-color: #fff7ed;
+  color: #f97316;
+  transform: translateX(8px);
+}
+
+.main-content {
+  flex: 1;
+  padding: 24px;
+  background-color: #f7fafc;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

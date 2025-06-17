@@ -16,9 +16,9 @@ const Login = () => {
   const dummyUsers = [
     {
       id: 1,
-      email: 'user@example.com',
-      password: 'password123',
-      name: 'John Doe',
+      email: 'ash@gmail.com',
+      password: '123456',
+      name: 'ash',
       role: 'user'
     },
     {
@@ -153,7 +153,7 @@ const Login = () => {
         </div>
         
         {/* Demo credentials info */}
-        <div style={{ 
+        {/* <div style={{ 
           backgroundColor: '#e3f2fd', 
           padding: '12px', 
           marginBottom: '20px', 
@@ -165,7 +165,7 @@ const Login = () => {
           Email: user@example.com | Password: password123<br/>
           Email: admin@example.com | Password: admin123<br/>
           Email: chef@example.com | Password: chef123
-        </div>
+        </div> */}
         
         {errors.general && (
           <div className="error-alert">{errors.general}</div>
