@@ -18,12 +18,12 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-           <Route path="/dashboard" element={<Dashboard />}/>
+          <Route path="/dashboard" element={<Dashboard />}/>
           <Route path="/recipe-feed" element={<RecipeFeed />} />
-                    <Route path="/my-recipes" element={<MyRecipes />} />
-                    <Route path="/post-recipe" element={<PostRecipe />} />
-                    <Route path="/saved" element={<SavedRecipes />} />
-                    <Route path="/profile" element={<Profile />} />
+          <Route path="/my-recipes" element={<MyRecipes />} />
+          <Route path="/post-recipe" element={<PostRecipe />} />
+          <Route path="/saved" element={<SavedRecipes />} />
+          <Route path="/profile" element={<Profile />} />
 
         </Routes>
       </Router>
