@@ -492,102 +492,6 @@ app.post('/api/users/:id/follow', authenticateToken, async (req, res) => {
   }
 });
 
-// RECIPE ROUTES
-app.get('/api/recipes', async (req, res) => {
-  try {
-    const { page = 1, limit = 10, category, search, sortBy = 'created_at', order = 'DESC' } = req.query;
-    const offset = (page - 1) * limit;
-
-    let query = `
-      SELECT 
-        r.*,
-        u.username as author_username,
-        u.first_name,
-        u.last_name,
-        u.user_type as author_role,
-        u.is_verified,
-        COUNT(DISTINCT rl.id) as likes_count,
-        COUNT(DISTINCT rc.id) as comments_count
-      FROM recipes r
-      JOIN users u ON r.user_id = u.id
-      LEFT JOIN recipe_likes rl ON r.id = rl.recipe_id
-      LEFT JOIN recipe_comments rc ON r.id = rc.recipe_id
-      WHERE r.is_published = 1
-    `;
-
-    const queryParams = [];
-
-    if (category) {
-      query += ` AND r.category = ?`;
-      queryParams.push(category);
-    }
-
-    if (search) {
-      query += ` AND (r.title LIKE ? OR r.description LIKE ? OR r.ingredients LIKE ?)`;
-      const searchTerm = `%${search}%`;
-      queryParams.push(searchTerm, searchTerm, searchTerm);
-    }
-
-    query += ` GROUP BY r.id ORDER BY ${sortBy} ${order} LIMIT ? OFFSET ?`;
-    queryParams.push(parseInt(limit), parseInt(offset));
-
-    const [recipes] = await pool.execute(query, queryParams);
-
-    const formattedRecipes = recipes.map(recipe => ({
-      id: recipe.id,
-      title: recipe.title,
-      description: recipe.description,
-      image: recipe.image_url ? `${req.protocol}://${req.get('host')}/${recipe.image_url}` : null,
-      author: `${recipe.first_name} ${recipe.last_name}`,
-      authorUsername: recipe.author_username,
-      authorRole: recipe.author_role,
-      isVerified: recipe.is_verified,
-      cookTime: recipe.cook_time,
-      prepTime: recipe.prep_time,
-      servings: recipe.servings,
-      difficulty: recipe.difficulty_level,
-      category: recipe.category,
-      likes: recipe.likes_count,
-      commentsCount: recipe.comments_count,
-      createdAt: recipe.created_at
-    }));
-
-    let countQuery = `SELECT COUNT(DISTINCT r.id) as total FROM recipes r WHERE r.is_published = 1`;
-    const countParams = [];
-
-    if (category) {
-      countQuery += ` AND r.category = ?`;
-      countParams.push(category);
-    }
-
-    if (search) {
-      countQuery += ` AND (r.title LIKE ? OR r.description LIKE ? OR r.ingredients LIKE ?)`;
-      const searchTerm = `%${search}%`;
-      countParams.push(searchTerm, searchTerm, searchTerm);
-    }
-
-    const [countResult] = await pool.execute(countQuery, countParams);
-    const totalRecipes = countResult[0].total;
-
-    res.json({
-      success: true,
-      recipes: formattedRecipes,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(totalRecipes / limit),
-        totalRecipes,
-        hasNext: offset + recipes.length < totalRecipes,
-        hasPrev: page > 1
-      }
-    });
-  } catch (error) {
-    console.error('Get recipes error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
 
 app.get('/api/recipes/:id', async (req, res) => {
   try {
@@ -1352,7 +1256,367 @@ app.post('/api/recipes/:id/comments', authenticateToken, async (req, res) => {
     });
   }
 });
+// FIXED: GET single recipe endpoint
+app.get('/api/recipes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    const [recipes] = await pool.execute(`
+      SELECT 
+        r.*,
+        u.username as author_username,
+        u.first_name,
+        u.last_name,
+        u.user_type as author_role,
+        u.is_verified,
+        u.bio as author_bio,
+        COUNT(DISTINCT rl.id) as likes_count,
+        COUNT(DISTINCT rc.id) as comments_count
+      FROM recipes r
+      JOIN users u ON r.user_id = u.id
+      LEFT JOIN recipe_likes rl ON r.id = rl.recipe_id
+      LEFT JOIN recipe_comments rc ON r.id = rc.recipe_id
+      WHERE r.id = ? AND r.is_published = 1
+      GROUP BY r.id
+    `, [id]);
+
+    if (recipes.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found'
+      });
+    }
+
+    const recipe = recipes[0];
+
+    const [ingredients] = await pool.execute(
+      'SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY order_index',
+      [id]
+    );
+
+    const [instructions] = await pool.execute(
+      'SELECT * FROM recipe_instructions WHERE recipe_id = ? ORDER BY step_number',
+      [id]
+    );
+
+    const [comments] = await pool.execute(`
+      SELECT 
+        rc.*,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.user_type
+      FROM recipe_comments rc
+      JOIN users u ON rc.user_id = u.id
+      WHERE rc.recipe_id = ?
+      ORDER BY rc.created_at DESC
+      LIMIT 10
+    `, [id]);
+
+    const formattedRecipe = {
+      id: recipe.id,
+      title: recipe.title,
+      description: recipe.description,
+      image: recipe.image_url ? `${req.protocol}://${req.get('host')}/${recipe.image_url}` : null,
+      author: {
+        username: recipe.author_username,
+        name: `${recipe.first_name} ${recipe.last_name}`,
+        role: recipe.author_role,
+        isVerified: recipe.is_verified,
+        bio: recipe.author_bio
+      },
+      cookTime: recipe.cook_time,
+      prepTime: recipe.prep_time,
+      servings: recipe.servings,
+      difficulty: recipe.difficulty_level,
+      category: recipe.category,
+      cuisine: recipe.cuisine,
+      tags: recipe.tags ? recipe.tags.split(',') : [],
+      nutritionInfo: recipe.nutrition_info ? JSON.parse(recipe.nutrition_info) : null,
+      ingredients: ingredients.map(ing => ({
+        id: ing.id,
+        name: ing.ingredient_name,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        notes: ing.notes
+      })),
+      instructions: instructions.map(inst => ({
+        id: inst.id,
+        stepNumber: inst.step_number,
+        instruction: inst.instruction_text,
+        duration: inst.duration_minutes,
+        tips: inst.tips
+      })),
+      likes: recipe.likes_count,
+      commentsCount: recipe.comments_count,
+      comments: comments.map(comment => ({
+        id: comment.id,
+        text: comment.comment_text,
+        rating: comment.rating,
+        author: {
+          username: comment.username,
+          name: `${comment.first_name} ${comment.last_name}`,
+          role: comment.user_type
+        },
+        createdAt: comment.created_at
+      })),
+      createdAt: recipe.created_at,
+      updatedAt: recipe.updated_at
+    };
+
+    res.json({
+      success: true,
+      recipe: formattedRecipe
+    });
+  } catch (error) {
+    console.error('Get recipe error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// FIXED: POST create recipe endpoint
+app.post('/api/recipes', authenticateToken, upload.single('image'), async (req, res) => {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+
+    // FIXED: Handle JSON parsing properly
+    let data;
+    try {
+      data = typeof req.body.data === 'string' 
+        ? JSON.parse(req.body.data) 
+        : req.body.data || req.body;
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid JSON data format'
+      });
+    }
+
+    const {
+      title,
+      description,
+      category,
+      cuisine,
+      difficulty,
+      cookTime,
+      prepTime,
+      servings,
+      tags,
+      ingredients,
+      instructions,
+      nutritionInfo
+    } = data;
+
+    if (!title || !description || !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, description, and category are required'
+      });
+    }
+
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = `uploads/${req.file.filename}`;
+    }
+
+    const [recipeResult] = await connection.execute(`
+      INSERT INTO recipes (
+        user_id, title, description, category, cuisine, difficulty_level,
+        cook_time, prep_time, servings, tags, image_url, nutrition_info, is_published
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      req.user.id,
+      title,
+      description,
+      category,
+      cuisine || null,
+      difficulty || 'Medium',
+      cookTime || null,
+      prepTime || null,
+      servings || null,
+      tags || null,
+      imageUrl,
+      nutritionInfo ? JSON.stringify(nutritionInfo) : null,
+      1
+    ]);
+
+    const recipeId = recipeResult.insertId;
+
+    if (ingredients && Array.isArray(ingredients)) {
+      for (let i = 0; i < ingredients.length; i++) {
+        const ingredient = ingredients[i];
+        await connection.execute(`
+          INSERT INTO recipe_ingredients (recipe_id, ingredient_name, quantity, unit, notes, order_index)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+          recipeId,
+          ingredient.name,
+          ingredient.quantity || null,
+          ingredient.unit || null,
+          ingredient.notes || null,
+          i + 1
+        ]);
+      }
+    }
+
+    if (instructions && Array.isArray(instructions)) {
+      for (let i = 0; i < instructions.length; i++) {
+        const instruction = instructions[i];
+        await connection.execute(`
+          INSERT INTO recipe_instructions (recipe_id, step_number, instruction_text, duration_minutes, tips)
+          VALUES (?, ?, ?, ?, ?)
+        `, [
+          recipeId,
+          i + 1,
+          instruction.text,
+          instruction.duration || null,
+          instruction.tips || null
+        ]);
+      }
+    }
+
+    await connection.execute(
+      'UPDATE users SET recipes_count = recipes_count + 1 WHERE id = ?',
+      [req.user.id]
+    );
+
+    await connection.commit();
+
+    const [newRecipe] = await connection.execute(`
+      SELECT 
+        r.*,
+        u.username as author_username,
+        u.first_name,
+        u.last_name,
+        u.user_type as author_role
+      FROM recipes r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.id = ?
+    `, [recipeId]);
+
+    const recipe = newRecipe[0];
+
+    res.status(201).json({
+      success: true,
+      message: 'Recipe created successfully',
+      recipe: {
+        id: recipe.id,
+        title: recipe.title,
+        description: recipe.description,
+        image: recipe.image_url ? `${req.protocol}://${req.get('host')}/${recipe.image_url}` : null,
+        author: `${recipe.first_name} ${recipe.last_name}`,
+        authorRole: recipe.author_role,
+        category: recipe.category,
+        difficulty: recipe.difficulty_level,
+        cookTime: recipe.cook_time,
+        likes: 0,
+        createdAt: recipe.created_at
+      }
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    console.error('Create recipe error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+
+// WORKING SOLUTION - Using same GROUP BY pattern as your working single recipe endpoint
+app.get('/api/recipes', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 10));
+    const offset = (page - 1) * limit;
+    
+    console.log('Pagination params:', { page, limit, offset });
+    
+    // Use query() instead of execute() to avoid parameter binding issues
+    const [recipes] = await pool.query(
+      `SELECT 
+        r.id,
+        r.title,
+        r.description,
+        r.category,
+        r.cuisine,
+        r.difficulty_level,
+        r.cook_time,
+        r.prep_time,
+        r.servings,
+        r.tags,
+        r.image_url,
+        r.created_at,
+        u.username,
+        u.first_name,
+        u.last_name
+      FROM recipes r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.is_published = 1
+      ORDER BY r.created_at DESC 
+      LIMIT ${limit} OFFSET ${offset}`
+    );
+
+    // Get total count
+    const [countResult] = await pool.query(
+      `SELECT COUNT(*) as total FROM recipes WHERE is_published = 1`
+    );
+
+    const totalRecipes = countResult[0].total;
+    const totalPages = Math.ceil(totalRecipes / limit);
+
+    // Format response
+    const formattedRecipes = recipes.map(recipe => ({
+      id: recipe.id,
+      title: recipe.title,
+      description: recipe.description,
+      category: recipe.category,
+      cuisine: recipe.cuisine,
+      difficulty: recipe.difficulty_level,
+      cookTime: recipe.cook_time,
+      prepTime: recipe.prep_time,
+      servings: recipe.servings,
+      tags: recipe.tags ? recipe.tags.split(',') : [],
+      image: recipe.image_url,
+      author: {
+        username: recipe.username,
+        name: `${recipe.first_name || ''} ${recipe.last_name || ''}`.trim()
+      },
+      createdAt: recipe.created_at
+    }));
+
+    res.json({
+      success: true,
+      recipes: formattedRecipes,
+      pagination: {
+        page,
+        limit,
+        total: totalRecipes,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Get recipes error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
