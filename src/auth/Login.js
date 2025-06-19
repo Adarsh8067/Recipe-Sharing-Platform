@@ -12,31 +12,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Dummy user data for testing
-  const dummyUsers = [
-    {
-      id: 1,
-      email: 'ash@gmail.com',
-      password: '123456',
-      name: 'ash',
-      role: 'user'
-    },
-    {
-      id: 2,
-      email: 'admin@example.com',
-      password: 'admin123',
-      name: 'Admin User',
-      role: 'admin'
-    },
-    {
-      id: 3,
-      email: 'chef@example.com',
-      password: 'chef123',
-      name: 'Chef Maria',
-      role: 'chef'
-    }
-  ];
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -81,44 +56,6 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check if user exists in dummy data
-      const user = dummyUsers.find(
-        u => u.email === formData.email && u.password === formData.password
-      );
-
-      if (user) {
-        // Simulate successful login response
-        const mockToken = 'dummy-jwt-token-' + Date.now();
-        const userData = {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role
-        };
-
-        // Store dummy data in localStorage (same as original)
-        localStorage.setItem('token', mockToken);
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        // Navigate to dashboard
-        navigate('/dashboard');
-      } else {
-        // Simulate login failure
-        setErrors({ general: 'Invalid email or password' });
-      }
-    } catch (error) {
-      // Simulate network error
-      setErrors({ general: 'Network error. Please try again.' });
-    } finally {
-      setIsLoading(false);
-    }
-
-    /* 
-    // Original backend API call - commented out
-    try {
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
@@ -129,19 +66,23 @@ const Login = () => {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.success) {
+        // Store authentication data
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Navigate to dashboard
         navigate('/dashboard');
       } else {
+        // Handle login failure
         setErrors({ general: data.message || 'Login failed' });
       }
     } catch (error) {
+      console.error('Login error:', error);
       setErrors({ general: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);
     }
-    */
   };
 
   return (
@@ -151,21 +92,6 @@ const Login = () => {
           <h2>Welcome Back</h2>
           <p>Sign in to your RecipeShare account</p>
         </div>
-        
-        {/* Demo credentials info */}
-        {/* <div style={{ 
-          backgroundColor: '#e3f2fd', 
-          padding: '12px', 
-          marginBottom: '20px', 
-          borderRadius: '4px',
-          fontSize: '14px',
-          color: '#1565c0'
-        }}>
-          <strong>Demo Credentials:</strong><br/>
-          Email: user@example.com | Password: password123<br/>
-          Email: admin@example.com | Password: admin123<br/>
-          Email: chef@example.com | Password: chef123
-        </div> */}
         
         {errors.general && (
           <div className="error-alert">{errors.general}</div>

@@ -8,23 +8,17 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    userType: 'user', // New field for user type
+    userType: 'user',
     firstName: '',
     lastName: '',
-    bio: '', // For chef profiles
-    experience: '', // For chef profiles
-    speciality: '' // For chef profiles
+    bio: '',
+    experience: '',
+    speciality: ''
   });
+
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  // Dummy existing users to check for duplicates
-  const existingUsers = [
-    { email: 'ash@gmail.com', username: 'ash' },
-    { email: 'admin@example.com', username: 'admin' },
-    { email: 'chef@example.com', username: 'chefmaria' }
-  ];
 
   const handleChange = (e) => {
     setFormData({
@@ -32,125 +26,69 @@ const Register = () => {
       [e.target.name]: e.target.value
     });
     if (errors[e.target.name]) {
-      setErrors({
-        ...errors,
-        [e.target.name]: ''
-      });
+      setErrors(prev => ({ ...prev, [e.target.name]: '' }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
-    if (!formData.username) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.length < 3) {
+    if (!formData.username || formData.username.length < 3)
       newErrors.username = 'Username must be at least 3 characters';
-    }
 
-    if (!formData.firstName) {
-      newErrors.firstName = 'First name is required';
-    }
+    if (!formData.firstName) newErrors.firstName = 'First name is required';
+    if (!formData.lastName) newErrors.lastName = 'Last name is required';
 
-    if (!formData.lastName) {
-      newErrors.lastName = 'Last name is required';
-    }
-    
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-    
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
+    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email))
+      newErrors.email = 'A valid email is required';
+
+    if (!formData.password || formData.password.length < 6)
       newErrors.password = 'Password must be at least 6 characters';
-    }
-    
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
+
+    if (formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = 'Passwords do not match';
+
+    if (formData.userType === 'chef') {
+      if (!formData.bio) newErrors.bio = 'Bio is required for chefs';
+      if (!formData.experience) newErrors.experience = 'Experience is required';
+      if (!formData.speciality) newErrors.speciality = 'Specialty is required';
     }
 
-    // Chef-specific validations
-    if (formData.userType === 'chef') {
-      if (!formData.bio) {
-        newErrors.bio = 'Bio is required for chef accounts';
-      }
-      if (!formData.experience) {
-        newErrors.experience = 'Experience is required for chef accounts';
-      }
-      if (!formData.speciality) {
-        newErrors.speciality = 'Specialty is required for chef accounts';
-      }
-    }
-    
     return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validateForm();
-    
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
     setIsLoading(true);
-    
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
 
-      // Check for duplicate email or username
-      const emailExists = existingUsers.some(user => user.email === formData.email);
-      const usernameExists = existingUsers.some(user => user.username === formData.username);
+      const data = await response.json();
 
-      if (emailExists) {
-        setErrors({ general: 'Email already exists. Please use a different email.' });
+      if (!response.ok) {
+        setErrors({ general: data.message || 'Registration failed' });
         setIsLoading(false);
         return;
       }
 
-      if (usernameExists) {
-        setErrors({ general: 'Username already taken. Please choose a different username.' });
-        setIsLoading(false);
-        return;
-      }
+      // Save token and user in localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Simulate successful registration
-      const newUserId = Date.now();
-      const mockToken = 'dummy-jwt-token-' + newUserId;
-      const newUser = {
-        id: newUserId,
-        username: formData.username,
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        name: `${formData.firstName} ${formData.lastName}`,
-        role: formData.userType,
-        userType: formData.userType,
-        bio: formData.bio || '',
-        experience: formData.experience || '',
-        speciality: formData.speciality || '',
-        createdAt: new Date().toISOString(),
-        recipesCount: 0,
-        followersCount: 0,
-        isVerified: formData.userType === 'chef' // Auto-verify chefs for demo
-      };
-
-      // Store dummy data in localStorage
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(newUser));
-      
       // Navigate to dashboard
       navigate('/dashboard');
-
     } catch (error) {
-      setErrors({ general: 'Network error. Please try again.' });
+      console.error('Registration error:', error);
+      setErrors({ general: 'Something went wrong. Please try again later.' });
     } finally {
       setIsLoading(false);
     }
@@ -163,24 +101,9 @@ const Register = () => {
           <h2>Create Account</h2>
           <p>Join RecipeShare and start cooking!</p>
         </div>
-        
-        {/* Demo info */}
-        <div style={{ 
-          backgroundColor: '#f3e5f5', 
-          padding: '12px', 
-          marginBottom: '20px', 
-          borderRadius: '4px',
-          fontSize: '14px',
-          color: '#7b1fa2'
-        }}>
-          <strong>Demo Mode:</strong> Try registering as User or Chef!<br/>
-          <small>Existing: ash@gmail.com, admin@example.com, chef@example.com</small>
-        </div>
-        
-        {errors.general && (
-          <div className="error-alert">{errors.general}</div>
-        )}
-        
+
+        {errors.general && <div className="error-alert">{errors.general}</div>}
+
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-row">
             <div className="form-group">
@@ -254,7 +177,6 @@ const Register = () => {
             </select>
           </div>
 
-          {/* Chef-specific fields */}
           {formData.userType === 'chef' && (
             <>
               <div className="form-group">
@@ -348,22 +270,15 @@ const Register = () => {
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            className="auth-btn"
-            disabled={isLoading}
-          >
+          <button type="submit" className="auth-btn" disabled={isLoading}>
             {isLoading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
         <div className="auth-footer">
-          <p>Already have an account? 
-            <button 
-              type="button" 
-              className="link-btn"
-              onClick={() => navigate('/login')}
-            >
+          <p>
+            Already have an account?{' '}
+            <button type="button" className="link-btn" onClick={() => navigate('/login')}>
               Sign In
             </button>
           </p>
