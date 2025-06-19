@@ -1,163 +1,168 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
   Box,
-  Drawer,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
-  ListItemButton,
   Avatar,
-  IconButton,
-  TextField,
-  InputAdornment,
-  Badge,
-  Menu,
-  MenuItem,
   Chip,
-  Fade,
-  Slide,
-  Zoom,
   Paper,
-  Container,
-  Divider,
-  Tooltip,
   useTheme,
-  alpha
+  alpha,
+  Fade,
+  Grow,
+  Slide
 } from '@mui/material';
-import PostRecipe from './PostRecipe'; // Assuming PostRecipe is a component for posting new recipes
+import {
+  Restaurant,
+  Favorite,
+  Person,
+  TrendingUp,
+  EmojiEvents,
+  Visibility
+} from '@mui/icons-material';
+import { styled, keyframes } from '@mui/material/styles';
+import PostRecipe from './PostRecipe';
 import RecipeFeed from './RecipeFeed';
 import MyRecipes from './MyRecipes';
 import SavedRecipes from './SavedRecipes';
 import Profile from './Profile';
-import {
-  Home,
-  MenuBook,
-  Add,
-  FavoriteOutlined,
-  Person,
-  Settings,
-  Logout,
-  Restaurant,
-  Search,
-  Notifications,
-  ExpandMore
-} from '@mui/icons-material';
-import { styled, keyframes } from '@mui/material/styles';
+import Header from '../dashboard/Header';
 
-// Enhanced styled components with animations
-const StyledAppBar = styled(AppBar)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-}));
-
-const pulseAnimation = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+// Animations
+const countUp = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
-const slideInLeft = keyframes`
-  from { transform: translateX(-100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+const pulseGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 20px rgba(25, 118, 210, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(25, 118, 210, 0.6), 0 0 40px rgba(25, 118, 210, 0.4); }
 `;
 
-const fadeInUp = keyframes`
-  from { transform: translateY(20px); opacity: 0; }
+const slideInUp = keyframes`
+  from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 `;
 
-const StyledDrawer = styled(Drawer)(({ theme }) => ({
-  '& .MuiDrawer-paper': {
-    width: 280,
-    background: `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.paper, 0.98)} 100%)`,
-    backdropFilter: 'blur(10px)',
-    border: 'none',
-    boxShadow: '4px 0 20px rgba(0,0,0,0.08)',
-    animation: `${slideInLeft} 0.3s ease-out`,
-  },
-}));
-
-const StyledListItemButton = styled(ListItemButton)(({ theme, active }) => ({
-  margin: '4px 12px',
-  borderRadius: '12px',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+// Styled Components
+const StatsCard = styled(Card)(({ theme, color = 'primary' }) => ({
+  background: `linear-gradient(135deg, ${theme.palette[color].main} 0%, ${theme.palette[color].dark} 100%)`,
+  color: 'white',
   position: 'relative',
   overflow: 'hidden',
-  '&:before': {
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  animation: `${pulseGlow} 3s ease-in-out infinite`,
+  '&:hover': {
+    transform: 'translateY(-8px) scale(1.02)',
+    '&::before': {
+      opacity: 1,
+    }
+  },
+  '&::before': {
     content: '""',
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    background: active 
-      ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)} 0%, ${alpha(theme.palette.secondary.main, 0.15)} 100%)`
-      : 'transparent',
-    borderRadius: '12px',
-    transition: 'all 0.3s ease',
+    background: `linear-gradient(135deg, ${alpha(theme.palette.common.white, 0.1)} 0%, transparent 100%)`,
+    opacity: 0,
+    transition: 'opacity 0.3s ease',
   },
-  '&:hover': {
-    transform: 'translateX(8px)',
-    '&:before': {
-      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
-    },
-  },
-  ...(active && {
-    '&:before': {
-      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.2)} 0%, ${alpha(theme.palette.secondary.main, 0.2)} 100%)`,
-    },
-  }),
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 100,
+    height: 100,
+    background: `radial-gradient(circle, ${alpha(theme.palette.common.white, 0.1)} 0%, transparent 70%)`,
+    borderRadius: '50%',
+  }
 }));
 
-const AnimatedAvatar = styled(Avatar)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-  animation: `${pulseAnimation} 3s ease-in-out infinite`,
-  cursor: 'pointer',
+const AnimatedNumber = styled(Typography)(({ theme }) => ({
+  fontWeight: 800,
+  fontSize: '2.5rem',
+  animation: `${countUp} 1s ease-out`,
+  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+}));
+
+const StatsListContainer = styled(Paper)(({ theme }) => ({
+  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+  backdropFilter: 'blur(10px)',
+  borderRadius: 16,
+  padding: theme.spacing(3),
+  animation: `${slideInUp} 0.8s ease-out`,
+  border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+}));
+
+const TrendingItem = styled(ListItem)(({ theme }) => ({
+  borderRadius: 12,
+  marginBottom: theme.spacing(1),
+  background: alpha(theme.palette.background.paper, 0.7),
+  backdropFilter: 'blur(5px)',
   transition: 'all 0.3s ease',
   '&:hover': {
-    transform: 'scale(1.1)',
-    boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.4)}`,
-  },
+    transform: 'translateX(8px)',
+    background: alpha(theme.palette.primary.main, 0.05),
+    boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+  }
 }));
 
-const SearchTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: '25px',
-    background: alpha(theme.palette.background.paper, 0.8),
-    backdropFilter: 'blur(10px)',
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-    },
-    '&.Mui-focused': {
-      transform: 'translateY(-2px)',
-      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.2)}`,
-    },
-  },
-}));
+// Counter Hook
+const useCounter = (end, duration = 2000) => {
+  const [count, setCount] = useState(0);
 
-const NotificationBadge = styled(Badge)(({ theme }) => ({
-  '& .MuiBadge-badge': {
-    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
-    animation: `${pulseAnimation} 2s ease-in-out infinite`,
-  },
-}));
+  useEffect(() => {
+    let startTime;
+    let animationFrame;
 
-const MainContent = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-  background: `linear-gradient(135deg, ${alpha(theme.palette.background.default, 0.5)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
-  minHeight: '100vh',
-  animation: `${fadeInUp} 0.6s ease-out`,
-}));
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      
+      setCount(Math.floor(progress * end));
+      
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
 
-// Mock recipe data (same as original)
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [end, duration]);
+
+  return count;
+};
+
+// Mock data for statistics
+const mockStats = {
+  totalRecipes: 1247,
+  totalLikes: 8934,
+  totalUsers: 456,
+  totalViews: 23456
+};
+
+const mockTrendingData = {
+  mostLikedRecipes: [
+    { id: 1, title: "Perfect Chocolate Chip Cookies", author: "Baker Jane", likes: 456, image: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=100" },
+    { id: 2, title: "Authentic Ramen Bowl", author: "Chef Tanaka", likes: 398, image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=100" },
+    { id: 3, title: "Mediterranean Quinoa Salad", author: "Health Guru", likes: 367, image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=100" },
+  ],
+  mostFollowedChefs: [
+    { id: 1, name: "Gordon Ramsay Jr.", followers: 1234, recipes: 89, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100" },
+    { id: 2, name: "Julia Martinez", followers: 987, recipes: 67, avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100" },
+    { id: 3, name: "Marco Chen", followers: 876, recipes: 54, avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100" },
+  ]
+};
+
 const mockRecipes = [
   {
     id: 1,
@@ -177,7 +182,7 @@ const mockRecipes = [
     title: "Classic Margherita Pizza",
     description: "Traditional Italian pizza with fresh mozzarella and basil",
     image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400",
-    author: "John Doe",
+    author: "John Smith",
     authorRole: "user",
     cookTime: "45 mins",
     difficulty: "Hard",
@@ -202,23 +207,24 @@ const mockRecipes = [
 
 const Dashboard = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [currentUser, setCurrentUser] = useState({
     name: "John Smith",
     firstName: "John",
     lastName: "Smith",
     role: "chef",
-    email: "john@example.com"
+    email: "john@example.com",
+    createdAt: "2024-01-01"
   });
-  const [activeTab, setActiveTab] = useState('home');
   const [recipes, setRecipes] = useState(mockRecipes);
   const [savedRecipes, setSavedRecipes] = useState([]);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(true);
 
-  const handleLogout = () => {
-    // Handle logout logic
-    console.log('Logout clicked');
-  };
+  // Animated counters
+  const totalRecipesCount = useCounter(mockStats.totalRecipes);
+  const totalLikesCount = useCounter(mockStats.totalLikes);
+  const totalUsersCount = useCounter(mockStats.totalUsers);
+  const totalViewsCount = useCounter(mockStats.totalViews);
 
   const toggleSaveRecipe = (recipeId) => {
     setSavedRecipes(prev => 
@@ -228,296 +234,219 @@ const Dashboard = () => {
     );
   };
 
-  const sidebarItems = [
-    { id: 'home', label: 'Recipe Feed', icon: Home, color: 'primary' },
-    { id: 'my-recipes', label: 'My Recipes', icon: MenuBook, color: 'secondary' },
-    { id: 'post-recipe', label: 'Post Recipe', icon: Add, color: 'success' },
-    { id: 'saved', label: 'Saved Recipes', icon: FavoriteOutlined, color: 'error' },
-    { id: 'profile', label: 'Profile', icon: Person, color: 'info' },
-    ...(currentUser?.role === 'admin' ? [{ id: 'settings', label: 'Settings', icon: Settings, color: 'warning' }] : [])
-  ];
-
-  const RecipeFeedContent = () => (
-    <Container maxWidth="lg">
-      <Fade in timeout={800}>
-        <Typography variant="h4" gutterBottom sx={{ 
-          fontWeight: 700,
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-          backgroundClip: 'text',
-          color: 'transparent',
-          mb: 4
-        }}>
-          Discover Amazing Recipes
-        </Typography>
-      </Fade>
-      
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 3 }}>
-        {recipes.map((recipe, index) => (
-          <Zoom in timeout={600 + index * 200} key={recipe.id}>
-            <Paper
-              elevation={0}
-              sx={{
-                borderRadius: '20px',
-                overflow: 'hidden',
-                background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
-                backdropFilter: 'blur(10px)',
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-8px)',
-                  boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.15)}`,
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  height: 200,
-                  backgroundImage: `url(${recipe.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  position: 'relative',
-                }}
-              >
-                <Chip
-                  label={recipe.category}
-                  size="small"
-                  sx={{
-                    position: 'absolute',
-                    top: 12,
-                    right: 12,
-                    background: alpha(theme.palette.background.paper, 0.9),
-                    backdropFilter: 'blur(10px)',
-                  }}
-                />
-              </Box>
-              
-              <Box sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  {recipe.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {recipe.description}
-                </Typography>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
-                      {recipe.author[0]}
-                    </Avatar>
-                    <Typography variant="caption">
-                      {recipe.author}
-                    </Typography>
-                    {recipe.authorRole === 'chef' && (
-                      <Restaurant sx={{ fontSize: 16, color: 'primary.main' }} />
-                    )}
-                  </Box>
-                  
-                  <IconButton
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSaveRecipe(recipe.id);
-                    }}
-                    sx={{
-                      color: savedRecipes.includes(recipe.id) ? 'error.main' : 'text.secondary',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        transform: 'scale(1.2)',
-                      },
-                    }}
-                  >
-                    <FavoriteOutlined />
-                  </IconButton>
-                </Box>
-                
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip label={recipe.cookTime} size="small" variant="outlined" />
-                  <Chip label={recipe.difficulty} size="small" variant="outlined" />
-                  <Chip label={`${recipe.likes} likes`} size="small" variant="outlined" />
-                </Box>
-              </Box>
-            </Paper>
-          </Zoom>
-        ))}
-      </Box>
-    </Container>
-  );
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return <RecipeFeedContent />;
-      case 'my-recipes':
-        return (
-         <MyRecipes 
-                            recipes={recipes.filter(r => r.author === currentUser.name)} 
-                            currentUser={currentUser}
-                        />
-                    
-        );
-      case 'post-recipe':
-        return (
-          
-             <PostRecipe 
-                            currentUser={currentUser}
-                            onRecipePosted={(recipe) => setRecipes(prev => [recipe, ...prev])}
-                        />
-          
-        );
-      case 'saved':
-        return (
-         <SavedRecipes 
-                            recipes={recipes.filter(r => savedRecipes.includes(r.id))}
-                            savedRecipes={savedRecipes}
-                            onToggleSave={toggleSaveRecipe}
-                        />
-
-        );
-      case 'profile':
-        return (
-          <Profile currentUser={currentUser} />
-
-        );
-      default:
-        return <RecipeFeedContent />;
-    }
+  const handleProfileUpdate = (updatedData) => {
+    setCurrentUser(prev => ({ ...prev, ...updatedData }));
   };
 
-  return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <StyledAppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Restaurant sx={{ fontSize: 32, color: 'white' }} />
-            <Typography variant="h5" sx={{ fontWeight: 700, color: 'white' }}>
-              RecipeShare
-            </Typography>
-          </Box>
-          
-          <Box sx={{ flexGrow: 1, maxWidth: 600, mx: 4 }}>
-            <SearchTextField
-              fullWidth
-              placeholder="Search recipes, ingredients, chefs..."
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Tooltip title="Notifications" arrow>
-              <IconButton color="inherit">
-                <NotificationBadge badgeContent={3} color="error">
-                  <Notifications />
-                </NotificationBadge>
-              </IconButton>
-            </Tooltip>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <AnimatedAvatar
-                onClick={(e) => setAnchorEl(e.currentTarget)}
-                sx={{ cursor: 'pointer' }}
-              >
-                {currentUser.firstName?.[0]}{currentUser.lastName?.[0]}
-              </AnimatedAvatar>
-              
-              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-                <Typography variant="body1" sx={{ fontWeight: 600, color: 'white' }}>
-                  {currentUser.name}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {currentUser.role === 'chef' && <Restaurant sx={{ fontSize: 14 }} />}
-                  <Typography variant="caption" sx={{ color: alpha('#fff', 0.8) }}>
-                    {currentUser.role}
-                  </Typography>
-                </Box>
-              </Box>
-              
-              <IconButton 
-                color="inherit"
-                onClick={(e) => setAnchorEl(e.currentTarget)}
-              >
-                <ExpandMore />
-              </IconButton>
-            </Box>
-          </Box>
-        </Toolbar>
-      </StyledAppBar>
+  const handleSearch = (searchTerm) => {
+    console.log('Search term:', searchTerm);
+  };
 
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      >
-        <MenuItem onClick={() => setActiveTab('profile')}>
-          <ListItemIcon><Person /></ListItemIcon>
-          Profile
-        </MenuItem>
-        <MenuItem onClick={() => setActiveTab('settings')}>
-          <ListItemIcon><Settings /></ListItemIcon>
-          Settings
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon><Logout /></ListItemIcon>
-          Logout
-        </MenuItem>
-      </Menu>
-
-      <StyledDrawer
-        variant="permanent"
-        open={drawerOpen}
-      >
-        <Toolbar />
-        <Box sx={{ overflow: 'auto', pt: 2 }}>
-          <List>
-            {sidebarItems.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <Slide in timeout={400 + index * 100} direction="right" key={item.id}>
+  const renderDashboardHome = () => (
+    <div style={{ padding: '30px', Width: '200px', marginLeft: '30vw' , marginTop: '10vh' }}>
+    <Box>
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Grow in timeout={400}>
+            <StatsCard color="primary">
+              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Restaurant sx={{ fontSize: 40, mr: 2 }} />
                   <Box>
-                    <Tooltip title={item.label} placement="right" arrow>
-                      <StyledListItemButton
-                        active={activeTab === item.id ? 1 : 0}
-                        onClick={() => setActiveTab(item.id)}
-                      >
-                        <ListItemIcon>
-                          <Icon sx={{ 
-                            color: activeTab === item.id ? `${item.color}.main` : 'text.secondary',
-                            transition: 'all 0.3s ease',
-                          }} />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={item.label}
-                          sx={{
-                            '& .MuiListItemText-primary': {
-                              fontWeight: activeTab === item.id ? 600 : 400,
-                              color: activeTab === item.id ? `${item.color}.main` : 'text.primary',
-                            }
-                          }}
-                        />
-                      </StyledListItemButton>
-                    </Tooltip>
+                    <AnimatedNumber variant="h4">
+                      {totalRecipesCount.toLocaleString()}
+                    </AnimatedNumber>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      Total Recipes
+                    </Typography>
                   </Box>
-                </Slide>
-              );
-            })}
-          </List>
-        </Box>
-      </StyledDrawer>
+                </Box>
+              </CardContent>
+            </StatsCard>
+          </Grow>
+        </Grid>
 
-      <MainContent component="main">
-        <Toolbar />
-        {renderContent()}
-      </MainContent>
+        <Grid item xs={12} sm={6} md={3}>
+          <Grow in timeout={600}>
+            <StatsCard color="error">
+              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Favorite sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <AnimatedNumber variant="h4">
+                      {totalLikesCount.toLocaleString()}
+                    </AnimatedNumber>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      Total Likes
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </StatsCard>
+          </Grow>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Grow in timeout={800}>
+            <StatsCard color="success">
+              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Person sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <AnimatedNumber variant="h4">
+                      {totalUsersCount.toLocaleString()}
+                    </AnimatedNumber>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      Total Users
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </StatsCard>
+          </Grow>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Grow in timeout={1000}>
+            <StatsCard color="warning">
+              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Visibility sx={{ fontSize: 40, mr: 2 }} />
+                  <Box>
+                    <AnimatedNumber variant="h4">
+                      {totalViewsCount.toLocaleString()}
+                    </AnimatedNumber>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      Total Views
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </StatsCard>
+          </Grow>
+        </Grid>
+      </Grid>
+
+      {/* Trending Lists */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Fade in timeout={1200}>
+            <StatsListContainer>
+              <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', fontWeight: 700 }}>
+                <TrendingUp sx={{ mr: 2, color: 'primary.main' }} />
+                Most Liked Recipes
+              </Typography>
+              <List>
+                {mockTrendingData.mostLikedRecipes.map((recipe, index) => (
+                  <Slide in timeout={1400 + index * 200} direction="up" key={recipe.id}>
+                    <TrendingItem>
+                      <Avatar 
+                        src={recipe.image} 
+                        sx={{ mr: 2, width: 50, height: 50 }}
+                      />
+                      <ListItemText
+                        primary={recipe.title}
+                        secondary={`by ${recipe.author}`}
+                        primaryTypographyProps={{ fontWeight: 600 }}
+                      />
+                      <Chip
+                        icon={<Favorite />}
+                        label={recipe.likes}
+                        color="error"
+                        size="small"
+                      />
+                    </TrendingItem>
+                  </Slide>
+                ))}
+              </List>
+            </StatsListContainer>
+          </Fade>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Fade in timeout={1400}>
+            <StatsListContainer>
+              <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', fontWeight: 700 }}>
+                <EmojiEvents sx={{ mr: 2, color: 'warning.main' }} />
+                Most Followed Chefs
+              </Typography>
+              <List>
+                {mockTrendingData.mostFollowedChefs.map((chef, index) => (
+                  <Slide in timeout={1600 + index * 200} direction="up" key={chef.id}>
+                    <TrendingItem>
+                      <Avatar 
+                        src={chef.avatar} 
+                        sx={{ mr: 2, width: 50, height: 50 }}
+                      />
+                      <ListItemText
+                        primary={chef.name}
+                        secondary={`${chef.recipes} recipes`}
+                        primaryTypographyProps={{ fontWeight: 600 }}
+                      />
+                      <Chip
+                        icon={<Person />}
+                        label={`${chef.followers} followers`}
+                        color="primary"
+                        size="small"
+                      />
+                    </TrendingItem>
+                  </Slide>
+                ))}
+              </List>
+            </StatsListContainer>
+          </Fade>
+        </Grid>
+      </Grid>
     </Box>
+    </div>
+  );
+
+  const currentPath = location.pathname;
+  const isDashboardHome = currentPath === '/' || currentPath === '/dashboard' || currentPath === '';
+
+  return (
+    <Header currentUser={currentUser} onSearch={handleSearch}>
+      <Routes>
+        <Route path="/" element={renderDashboardHome()} />
+        <Route path="/dashboard" element={renderDashboardHome()} />
+        <Route path="/recipe-feed" element={
+          <RecipeFeed 
+            recipes={recipes}
+            currentUser={currentUser}
+            savedRecipes={savedRecipes}
+            onToggleSave={toggleSaveRecipe}
+          />
+        } />
+        <Route path="/my-recipes" element={
+          <MyRecipes 
+            recipes={recipes.filter(r => r.author === currentUser.name)}
+            currentUser={currentUser}
+          />
+        } />
+        <Route path="/post-recipe" element={
+          <PostRecipe 
+            currentUser={currentUser}
+            onRecipePosted={(recipe) => setRecipes(prev => [recipe, ...prev])}
+          />
+        } />
+        <Route path="/saved" element={
+          <SavedRecipes 
+            recipes={recipes.filter(r => savedRecipes.includes(r.id))}
+            savedRecipes={savedRecipes}
+            onToggleSave={toggleSaveRecipe}
+          />
+        } />
+        <Route path="/profile" element={
+          <Profile 
+            currentUser={currentUser}
+            onProfileUpdate={handleProfileUpdate}
+          />
+        } />
+        <Route path="/settings" element={<div>Settings Page (Admin Only)</div>} />
+        <Route path="*" element={renderDashboardHome()} />
+      </Routes>
+    </Header>
   );
 };
 

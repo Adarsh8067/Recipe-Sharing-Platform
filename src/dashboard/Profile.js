@@ -1,178 +1,287 @@
 import React, { useState } from 'react';
-import { ChefHat, Star } from 'lucide-react';
+import {
+  Typography,
+  Box,
+  TextField,
+  Paper,
+  Container,
+  Avatar,
+  useTheme,
+  alpha
+} from '@mui/material';
+import { Restaurant, Star } from '@mui/icons-material';
 
-const Profile = ({ currentUser }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [profileData, setProfileData] = useState({
-        firstName: currentUser.firstName || '',
-        lastName: currentUser.lastName || '',
-        bio: currentUser.bio || '',
-        speciality: null,
-        experience: null
-    });
+const Profile = ({ currentUser = {}, onProfileUpdate = () => {} }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState({
+    firstName: currentUser.firstName || '',
+    lastName: currentUser.lastName || '',
+    bio: currentUser.bio || '',
+    speciality: currentUser.speciality || '',
+    experience: currentUser.experience || ''
+  });
+  const theme = useTheme();
 
-    const handleSave = () => {
-        const updatedUser = { ...currentUser, ...profileData };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setIsEditing(false);
-        alert('Profile updated successfully!');
-    };
+  const handleSave = () => {
+    onProfileUpdate(profileData);
+    setIsEditing(false);
+    alert('Profile updated successfully!');
+  };
 
+  if (!currentUser.name) {
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 bg-orange-500 text-white rounded-full flex items-center justify-center text-2xl">
-                        {currentUser.firstName?.[0]}{currentUser.lastName?.[0]}
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800">{currentUser.name}</h2>
-                        <div className="flex items-center gap-2 text-gray-600">
-                            {currentUser.role === 'chef' && <ChefHat size={16} />}
-                            <span>{currentUser.role === 'chef' ? 'Professional Chef' : 'Home Cook'}</span>
-                            {currentUser.isVerified && <Star size={14} className="text-orange-500" />}
-                        </div>
-                        <div className="mt-2 flex gap-4 text-sm text-gray-600">
-                            <div>
-                                <span className="block font-medium">{currentUser.recipesCount || 0}</span>
-                                <span>Recipes</span>
-                            </div>
-                            <div>
-                                <span className="block font-medium">{currentUser.followersCount || 0}</span>
-                                <span>Followers</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <button 
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                >
-                    {isEditing ? 'Cancel' : 'Edit Profile'}
-                </button>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-                {isEditing ? (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">First Name</label>
-                                <input
-                                    type="text"
-                                    value={profileData.firstName}
-                                    onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
-                                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                                <input
-                                    type="text"
-                                    value={profileData.lastName}
-                                    onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
-                                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Bio</label>
-                            <textarea
-                                value={profileData.bio}
-                                onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                                rows="4"
-                                placeholder="Tell us about yourself..."
-                                className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
-                            />
-                        </div>
-
-                        {currentUser.role === 'chef' && (
-                            <>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Specialty</label>
-                                    <select
-                                        value={profileData.speciality}
-                                        onChange={(e) => setProfileData({...profileData, speciality: e.target.value})}
-                                        className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
-                                    >
-                                        <option value="">Select specialty</option>
-                                        <option value="italian">Italian Cuisine</option>
-                                        <option value="french">French Cuisine</option>
-                                        <option value="asian">Asian Cuisine</option>
-                                        <option value="indian">Indian Cuisine</option>
-                                        <option value="mediterranean">Mediterranean</option>
-                                        <option value="mexican">Mexican Cuisine</option>
-                                        <option value="american">American Cuisine</option>
-                                        <option value="pastry">Pastry & Desserts</option>
-                                        <option value="vegetarian">Vegetarian/Vegan</option>
-                                        <option value="seafood">Seafood</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Experience</label>
-                                    <select
-                                        value={profileData.experience}
-                                        onChange={(e) => setProfileData({...profileData, experience: e.target.value})}
-                                        className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500"
-                                    >
-                                        <option value="">Select experience</option>
-                                        <option value="1-2">1-2 years</option>
-                                        <option value="3-5">3-5 years</option>
-                                        <option value="6-10">6-10 years</option>
-                                        <option value="10+">10+ years</option>
-                                    </select>
-                                </div>
-                            </>
-                        )}
-
-                        <div className="flex gap-4">
-                            <button 
-                                onClick={handleSave} 
-                                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                            >
-                                Save Changes
-                            </button>
-                            <button 
-                                onClick={() => setIsEditing(false)} 
-                                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-800">About</h3>
-                            <p className="text-gray-600">{currentUser.bio || 'No bio added yet.'}</p>
-                        </div>
-
-                        {currentUser.role === 'chef' && (
-                            <>
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-800">Specialty</h3>
-                                    <p className="text-gray-600">{currentUser.speciality || 'Not specified'}</p>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-800">Experience</h3>
-                                    <p className="text-gray-600">{currentUser.experience || 'Not specified'}</p>
-                                </div>
-                            </>
-                        )}
-
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-800">Member Since</h3>
-                            <p className="text-gray-600">{new Date(currentUser.createdAt).toLocaleDateString()}</p>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
+      <Container maxWidth="lg">
+        <Typography variant="h4" sx={{ mb: 4, fontWeight: 700 }}>
+          Loading Profile...
+        </Typography>
+      </Container>
     );
+  }
+
+  return (
+    <Container maxWidth="lg">
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Avatar
+              sx={{
+                width: 80,
+                height: 80,
+                backgroundColor: 'primary.main',
+                fontSize: '2rem',
+              }}
+            >
+              {currentUser.firstName?.[0] || '?'}{currentUser.lastName?.[0] || '?'}
+            </Avatar>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                {currentUser.name || 'Anonymous'}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, color: 'text.secondary' }}>
+                {currentUser.role === 'chef' && <Restaurant sx={{ fontSize: 16 }} />}
+                <Typography variant="body2">
+                  {currentUser.role === 'chef' ? 'Professional Chef' : 'Home Cook'}
+                </Typography>
+                {currentUser.isVerified && <Star sx={{ fontSize: 14, color: 'warning.main' }} />}
+              </Box>
+              <Box sx={{ mt: 2, display: 'flex', gap: 4, color: 'text.secondary' }}>
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {currentUser.recipesCount || 0}
+                  </Typography>
+                  <Typography variant="caption">Recipes</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {currentUser.followersCount || 0}
+                  </Typography>
+                  <Typography variant="caption">Followers</Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+          <Box
+            component="button"
+            onClick={() => setIsEditing(!isEditing)}
+            sx={{
+              px: 4,
+              py: 2,
+              backgroundColor: 'primary.main',
+              color: 'white',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              '&:hover': {
+                backgroundColor: 'primary.dark',
+              },
+            }}
+          >
+            {isEditing ? 'Cancel' : 'Edit Profile'}
+          </Box>
+        </Box>
+      </Box>
+
+      <Paper
+        elevation={0}
+        sx={{
+          p: 6,
+          borderRadius: '20px',
+          background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+        }}
+      >
+        {isEditing ? (
+          <Box sx={{ '& > div': { mb: 4 } }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>First Name</Typography>
+                <TextField
+                  fullWidth
+                  value={profileData.firstName}
+                  onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
+                  size="small"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                />
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>Last Name</Typography>
+                <TextField
+                  fullWidth
+                  value={profileData.lastName}
+                  onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
+                  size="small"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                />
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>Bio</Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                value={profileData.bio}
+                onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                placeholder="Tell us about yourself..."
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Box>
+
+            {currentUser.role === 'chef' && (
+              <>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>Specialty</Typography>
+                  <TextField
+                    select
+                    fullWidth
+                    value={profileData.speciality || ''}
+                    onChange={(e) => setProfileData({...profileData, speciality: e.target.value})}
+                    size="small"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                    SelectProps={{ native: true }}
+                  >
+                    <option value="">Select specialty</option>
+                    <option value="italian">Italian Cuisine</option>
+                    <option value="french">French Cuisine</option>
+                    <option value="asian">Asian Cuisine</option>
+                    <option value="indian">Indian Cuisine</option>
+                    <option value="mediterranean">Mediterranean</option>
+                    <option value="mexican">Mexican Cuisine</option>
+                    <option value="american">American Cuisine</option>
+                    <option value="pastry">Pastry & Desserts</option>
+                    <option value="vegetarian">Vegetarian/Vegan</option>
+                    <option value="seafood">Seafood</option>
+                    <option value="other">Other</option>
+                  </TextField>
+                </Box>
+
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>Experience</Typography>
+                  <TextField
+                    select
+                    fullWidth
+                    value={profileData.experience || ''}
+                    onChange={(e) => setProfileData({...profileData, experience: e.target.value})}
+                    size="small"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                    SelectProps={{ native: true }}
+                  >
+                    <option value="">Select experience</option>
+                    <option value="1-2">1-2 years</option>
+                    <option value="3-5">3-5 years</option>
+                    <option value="6-10">6-10 years</option>
+                    <option value="10+">10+ years</option>
+                  </TextField>
+                </Box>
+              </>
+            )}
+
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box
+                component="button"
+                onClick={handleSave}
+                sx={{
+                  px: 4,
+                  py: 2,
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
+                  },
+                }}
+              >
+                Save Changes
+              </Box>
+              <Box
+                component="button"
+                onClick={() => setIsEditing(false)}
+                sx={{
+                  px: 4,
+                  py: 2,
+                  backgroundColor: 'grey.300',
+                  color: 'text.primary',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'grey.400',
+                  },
+                }}
+              >
+                Cancel
+              </Box>
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ '& > div': { mb: 4 } }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                About
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {currentUser.bio || 'No bio added yet.'}
+              </Typography>
+            </Box>
+
+            {currentUser.role === 'chef' && (
+              <>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    Specialty
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                    {currentUser.speciality || 'Not specified'}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    Experience
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                    {currentUser.experience || 'Not specified'}
+                  </Typography>
+                </Box>
+              </>
+            )}
+
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                Member Since
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A'}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+      </Paper>
+    </Container>
+  );
 };
 
 export default Profile;
