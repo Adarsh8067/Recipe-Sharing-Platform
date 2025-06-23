@@ -516,6 +516,77 @@ app.get('/api/users/profile/:userId', authenticateToken, async (req, res) => {
   }
 });
 
+
+app.post('/api/users/:id/toggle-follow', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const followerId = req.user.id;
+
+    // Can't follow yourself
+    if (followerId == id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot follow yourself'
+      });
+    }
+
+    // Check if user exists
+    const [userCheck] = await pool.execute(
+      'SELECT id FROM users WHERE id = ?',
+      [id]
+    );
+
+    if (userCheck.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if already following
+    const [existing] = await pool.execute(
+      'SELECT id FROM followers WHERE follower_id = ? AND followed_id = ?',
+      [followerId, id]
+    );
+
+    let isFollowing = false;
+    if (existing.length > 0) {
+      // Unfollow
+      await pool.execute(
+        'DELETE FROM followers WHERE follower_id = ? AND followed_id = ?',
+        [followerId, id]
+      );
+      isFollowing = false;
+    } else {
+      // Follow
+      await pool.execute(
+        'INSERT INTO followers (follower_id, followed_id) VALUES (?, ?)',
+        [followerId, id]
+      );
+      isFollowing = true;
+    }
+
+    // Get updated follower count
+    const [followerCount] = await pool.execute(
+      'SELECT COUNT(*) as count FROM followers WHERE followed_id = ?',
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: isFollowing ? 'User followed successfully' : 'User unfollowed successfully',
+      isFollowing,
+      followersCount: followerCount[0].count
+    });
+  } catch (error) {
+    console.error('Toggle follow error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
 // PUT endpoint to update user profile
 app.put('/api/users/profile', authenticateToken, async (req, res) => {
   try {
@@ -702,6 +773,65 @@ app.patch('/api/users/profile', authenticateToken, async (req, res) => {
   }
 });
 
+
+app.get('/api/users/:id/profile', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user.id;
+
+    const [user] = await pool.execute(`
+      SELECT 
+        u.id,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.user_type,
+        u.bio,
+        u.profile_image,
+        u.created_at,
+        (SELECT COUNT(*) FROM followers WHERE followed_id = u.id) as followers_count,
+        (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) as following_count,
+        (SELECT COUNT(*) FROM recipes WHERE user_id = u.id AND is_published = 1) as recipes_count,
+        CASE WHEN EXISTS(SELECT 1 FROM followers WHERE follower_id = ? AND followed_id = u.id) 
+          THEN 1 ELSE 0 END as is_following
+      FROM users u
+      WHERE u.id = ?
+    `, [currentUserId, id]);
+
+    if (user.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userProfile = {
+      id: user[0].id,
+      username: user[0].username,
+      name: `${user[0].first_name} ${user[0].last_name}`,
+      role: user[0].user_type,
+      bio: user[0].bio,
+      profileImage: user[0].profile_image ? `${req.protocol}://${req.get('host')}/${user[0].profile_image}` : null,
+      followersCount: user[0].followers_count,
+      followingCount: user[0].following_count,
+      recipesCount: user[0].recipes_count,
+      isFollowing: user[0].is_following === 1,
+      createdAt: user[0].created_at
+    };
+
+    res.json({
+      success: true,
+      user: userProfile
+    });
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
 app.get('/api/users/:username', async (req, res) => {
   try {
     const { username } = req.params;
@@ -818,7 +948,40 @@ app.post('/api/users/:id/follow', authenticateToken, async (req, res) => {
   }
 });
 
+// Get followers of a user
+app.get('/api/users/:id/followers', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [followers] = await pool.execute(
+      `SELECT 
+         u.id, u.username, u.first_name, u.last_name, u.user_type
+       FROM followers f
+       JOIN users u ON f.follower_id = u.id
+       WHERE f.followed_id = ?`,
+      [id]
+    );
 
+    const formattedFollowers = followers.map(user => ({
+      id: user.id,
+      username: user.username,
+      name: `${user.first_name} ${user.last_name}`.trim(),
+      role: user.user_type
+      // profileImage: not included
+    }));
+
+    res.json({
+      success: true,
+      followers: formattedFollowers,
+      count: formattedFollowers.length
+    });
+  } catch (error) {
+    console.error('Get followers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
 app.get('/api/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -939,11 +1102,96 @@ app.get('/api/recipes/:id', async (req, res) => {
   }
 });
 
+app.get('/api/recipes/:id/likes', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [users] = await pool.execute(
+      `SELECT u.id, u.username, u.first_name, u.last_name
+       FROM recipe_likes rl
+       JOIN users u ON rl.user_id = u.id
+       WHERE rl.recipe_id = ?`,
+      [id]
+    );
+    const formatted = users.map(u => ({
+      id: u.id,
+      username: u.username,
+      name: `${u.first_name} ${u.last_name}`.trim()
+    }));
+    res.json({ success: true, users: formatted, count: formatted.length });
+  } catch (error) {
+    console.error('Get likes error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get all recipes liked by the current user
+app.get('/api/recipes/liked', authenticateToken, async (req, res) => {
+  try {
+    const [likedRecipes] = await pool.execute(`
+      SELECT 
+        r.*,
+        u.username as author_username,
+        u.first_name,
+        u.last_name,
+        u.user_type as author_role,
+        COUNT(DISTINCT rl2.id) as likes_count,
+        rl.created_at as liked_at
+      FROM recipe_likes rl
+      JOIN recipes r ON rl.recipe_id = r.id
+      JOIN users u ON r.user_id = u.id
+      LEFT JOIN recipe_likes rl2 ON r.id = rl2.recipe_id
+      WHERE rl.user_id = ? AND r.is_published = 1
+      GROUP BY r.id
+      ORDER BY rl.created_at DESC
+    `, [req.user.id]);
+
+    const formattedRecipes = likedRecipes.map(recipe => ({
+      id: recipe.id,
+      title: recipe.title,
+      description: recipe.description,
+      image: recipe.image_url ? `${req.protocol}://${req.get('host')}/${recipe.image_url}` : null,
+      author: `${recipe.first_name} ${recipe.last_name}`,
+      authorRole: recipe.author_role,
+      cookTime: recipe.cook_time,
+      difficulty: recipe.difficulty_level,
+      category: recipe.category,
+      likes: recipe.likes_count,
+      likedAt: recipe.liked_at,
+      createdAt: recipe.created_at
+    }));
+
+    res.json({
+      success: true,
+      recipes: formattedRecipes
+    });
+  } catch (error) {
+    console.error('Get liked recipes error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
 app.post('/api/recipes', authenticateToken, upload.single('image'), async (req, res) => {
   const connection = await pool.getConnection();
   
   try {
     await connection.beginTransaction();
+
+     let data;
+    if (req.body.data) {
+      try {
+        data = typeof req.body.data === 'string' ? JSON.parse(req.body.data) : req.body.data;
+      } catch (parseError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid JSON in data field'
+        });
+      }
+    } else {
+      data = req.body;
+    }
+
 
     const {
       title,
@@ -958,7 +1206,7 @@ app.post('/api/recipes', authenticateToken, upload.single('image'), async (req, 
       ingredients,
       instructions,
       nutritionInfo
-    } = JSON.parse(req.body.data);
+    } = data;
 
     if (!title || !description || !category) {
       return res.status(400).json({
@@ -1514,6 +1762,25 @@ app.put('/api/recipes/:id', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/users/:id/followers/count', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await pool.execute(
+      'SELECT COUNT(*) as followersCount FROM followers WHERE followed_id = ?',
+      [id]
+    );
+    res.json({
+      success: true,
+      followersCount: result[0].followersCount
+    });
+  } catch (error) {
+    console.error('Get followers count error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
 // Delete Recipe Endpoint
 app.delete('/api/recipes/:id', authenticateToken, async (req, res) => {
   try {
@@ -2033,25 +2300,25 @@ app.post('/api/recipes/:id/toggle-like', authenticateToken, async (req, res) => 
       });
     }
 
-    const [existing] = await pool.execute(
-      'SELECT id FROM recipe_likes WHERE user_id = ? AND recipe_id = ?',
-      [req.user.id, id]
-    );
+   const [existing] = await pool.execute(
+  'SELECT id FROM recipe_likes WHERE user_id = ? AND recipe_id = ?',
+  [req.user.id, id]
+);
 
-    let isLiked = false;
-    if (existing.length > 0) {
-      await pool.execute(
-        'DELETE FROM recipe_likes WHERE user_id = ? AND recipe_id = ?',
-        [req.user.id, id]
-      );
-      isLiked = false;
-    } else {
-      await pool.execute(
-        'INSERT INTO recipe_likes (user_id, recipe_id) VALUES (?, ?)',
-        [req.user.id, id]
-      );
-      isLiked = true;
-    }
+let isLiked = false;
+if (existing.length > 0) {
+  await pool.execute(
+    'DELETE FROM recipe_likes WHERE user_id = ? AND recipe_id = ?',
+    [req.user.id, id]
+  );
+  isLiked = false;
+} else {
+  await pool.execute(
+    'INSERT INTO recipe_likes (user_id, recipe_id) VALUES (?, ?)',
+    [req.user.id, id]
+  );
+  isLiked = true;
+}
 
     const [likeCount] = await pool.execute(
       'SELECT COUNT(*) as count FROM recipe_likes WHERE recipe_id = ?',
@@ -2073,17 +2340,9 @@ app.post('/api/recipes/:id/toggle-like', authenticateToken, async (req, res) => 
   }
 });
 
-app.post('/api/recipes/:id/comments', authenticateToken, async (req, res) => {
+app.get('/api/recipes/:id/comments', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { comment, rating } = req.body;
-
-    if (!comment) {
-      return res.status(400).json({
-        success: false,
-        message: 'Comment text is required'
-      });
-    }
 
     const [recipeCheck] = await pool.execute(
       'SELECT id FROM recipes WHERE id = ? AND is_published = 1',
@@ -2097,12 +2356,7 @@ app.post('/api/recipes/:id/comments', authenticateToken, async (req, res) => {
       });
     }
 
-    const [result] = await pool.execute(
-      'INSERT INTO recipe_comments (recipe_id, user_id, comment_text, rating) VALUES (?, ?, ?, ?)',
-      [id, req.user.id, comment, rating || null]
-    );
-
-    const [newComment] = await pool.execute(`
+    const [comments] = await pool.execute(`
       SELECT 
         rc.*,
         u.username,
@@ -2111,34 +2365,123 @@ app.post('/api/recipes/:id/comments', authenticateToken, async (req, res) => {
         u.user_type
       FROM recipe_comments rc
       JOIN users u ON rc.user_id = u.id
-      WHERE rc.id = ?
-    `, [result.insertId]);
+      WHERE rc.recipe_id = ?
+      ORDER BY rc.created_at DESC
+    `, [id]);
 
-    const formattedComment = {
-      id: newComment[0].id,
-      text: newComment[0].comment_text,
-      rating: newComment[0].rating,
+    const formattedComments = comments.map(comment => ({
+      id: comment.id,
+      text: comment.comment_text,
+      rating: comment.rating,
       author: {
-        username: newComment[0].username,
-        name: `${newComment[0].first_name} ${newComment[0].last_name}`,
-        role: newComment[0].user_type
+        username: comment.username,
+        name: `${comment.first_name} ${comment.last_name}`,
+        role: comment.user_type
       },
-      createdAt: newComment[0].created_at
-    };
+      createdAt: comment.created_at
+    }));
 
-    res.status(201).json({
+    res.json({
       success: true,
-      message: 'Comment added successfully',
-      comment: formattedComment
+      comments: formattedComments
     });
   } catch (error) {
-    console.error('Add comment error:', error);
+    console.error('Get comments error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
     });
   }
 });
+
+app.get('/api/recipes/liked/ids', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT r.id
+       FROM recipe_likes rl
+       JOIN recipes r ON rl.recipe_id = r.id
+       WHERE rl.user_id = ? AND r.is_published = 1`,
+      [req.user.id]
+    );
+
+    // Return just the array of recipe IDs
+    res.json({
+      success: true,
+      likedRecipeIds: rows.map(r => r.id)
+    });
+  } catch (error) {
+    console.error('Get liked recipe IDs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+app.post('/api/recipes/:id/comments', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const recipeId = parseInt(req.params.id);
+    const { comment, rating } = req.body;
+
+    if (!comment || comment.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Comment text is required'
+      });
+    }
+
+    // Optional: Validate rating is between 1 and 5
+    if (rating && (isNaN(rating) || rating < 1 || rating > 5)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rating must be a number between 1 and 5'
+      });
+    }
+
+    // Insert into DB
+    const [result] = await pool.execute(
+      `INSERT INTO recipe_comments (recipe_id, user_id, comment_text, rating)
+       VALUES (?, ?, ?, ?)`,
+      [recipeId, userId, comment.trim(), rating || null]
+    );
+
+    // Fetch the inserted comment with user info
+    const [rows] = await pool.execute(`
+      SELECT rc.id, rc.comment_text, rc.rating, rc.created_at,
+             u.id as user_id, u.username, u.first_name, u.last_name
+      FROM recipe_comments rc
+      JOIN users u ON rc.user_id = u.id
+      WHERE rc.id = ?
+    `, [result.insertId]);
+
+    const postedComment = rows[0];
+
+    res.status(201).json({
+      success: true,
+      message: 'Comment posted successfully',
+      comment: {
+        id: postedComment.id,
+        text: postedComment.comment_text,
+        rating: postedComment.rating,
+        createdAt: postedComment.created_at,
+        user: {
+          id: postedComment.user_id,
+          username: postedComment.username,
+          name: `${postedComment.first_name} ${postedComment.last_name}`.trim()
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Post comment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 // FIXED: GET single recipe endpoint
 app.get('/api/recipes/:id', async (req, res) => {
   try {
