@@ -39,6 +39,9 @@ import {
   Bookmark
 } from '@mui/icons-material';
 
+const FALLBACK_IMAGE_1 = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80';
+const FALLBACK_IMAGE_2 = 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?w=800&q=80'; // New distinct food image
+
 const RecipeFeed = ({ currentUser = {} }) => {
   const theme = useTheme();
   const [recipes, setRecipes] = useState([]);
@@ -206,11 +209,7 @@ const RecipeFeed = ({ currentUser = {} }) => {
           ...prev,
           [recipeId]: [data.comment, ...(prev[recipeId] || [])]
         }));
-        setRecipes(prev => prev.map(recipe => 
-          recipe.id === recipeId 
-            ? { ...recipe, comments: recipe.comments + 1 }
-            : recipe
-        ));
+       
         setNewComment('');
         setNewRating(0);
         setCommentDialogs(prev => ({ ...prev, [recipeId]: false }));
@@ -311,7 +310,7 @@ const RecipeFeed = ({ currentUser = {} }) => {
               <Box
                 sx={{
                   height: 200,
-                  backgroundImage: `url(${recipe.image})`,
+                  backgroundImage: `url(${recipe.image || (index % 2 === 0 ? FALLBACK_IMAGE_1 : FALLBACK_IMAGE_2)})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   position: 'relative',

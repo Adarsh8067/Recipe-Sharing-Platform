@@ -88,63 +88,70 @@ const Login = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <div className="auth-header">
-          <h2>Welcome Back</h2>
-          <p>Sign in to your RecipeShare account</p>
-        </div>
-        
-        {errors.general && (
-          <div className="error-alert">{errors.general}</div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={errors.email ? 'error' : ''}
-              placeholder="Enter your email"
-            />
-            {errors.email && <span className="error-text">{errors.email}</span>}
+        <div className="auth-image" />
+        <div className="auth-form">
+          <div className="auth-header">
+            <h2>Welcome Back</h2>
+            <p>Sign in to your RecipeShare account</p>
           </div>
+          {errors.general && (
+            <div className="error-alert">{errors.general}</div>
+          )}
+          <form onSubmit={handleSubmit} className="auth-form-fields">
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className={errors.email ? 'error' : ''}
+                placeholder="Enter your email"
+              />
+              {errors.email && <span className="error-text">{errors.email}</span>}
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={errors.password ? 'error' : ''}
-              placeholder="Enter your password"
-            />
-            {errors.password && <span className="error-text">{errors.password}</span>}
-          </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className={errors.password ? 'error' : ''}
+                placeholder="Enter your password"
+              />
+              {errors.password && <span className="error-text">{errors.password}</span>}
+            </div>
 
-          <button 
-            type="submit" 
-            className="auth-btn"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Signing In...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          <p>Don't have an account? 
             <button 
-              type="button" 
-              className="link-btn"
-              onClick={() => navigate('/register')}
+              type="submit" 
+              className="auth-btn"
+              disabled={isLoading}
             >
-              Sign Up
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
-          </p>
+          </form>
+          <div className="auth-footer">
+            <p>Don't have an account? 
+              <button 
+                type="button" 
+                className="link-btn"
+                onClick={() => navigate('/register')}
+              >
+                Sign Up
+              </button>
+            </p>
+          </div>
+        </div>
+        <div className="auth-info">
+          <div className="auth-info-content">
+            <img src="/logo192.png" alt="RecipeShare Logo" className="auth-logo" />
+            <h2>Discover & Share Recipes</h2>
+            <p>Get started using a modern recipe-sharing platform that helps you cook, connect, and inspire others. Join now and explore amazing dishes!</p>
+          </div>
         </div>
       </div>
     </div>
