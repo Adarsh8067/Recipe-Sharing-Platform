@@ -376,6 +376,332 @@ app.put('/api/users/profile', authenticateToken, async (req, res) => {
   }
 });
 
+
+// GET endpoint to fetch user profile (current user)
+app.get('/api/users/profile', authenticateToken, async (req, res) => {
+  try {
+    const [userResult] = await pool.execute(
+      `SELECT 
+        id,
+        username,
+        email,
+        first_name,
+        last_name,
+        user_type,
+        bio,
+        experience,
+        speciality,
+        is_verified,
+        recipes_count,
+        followers_count,
+        created_at,
+        updated_at
+      FROM users 
+      WHERE id = ?`,
+      [req.user.id]
+    );
+
+    if (userResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const user = userResult[0];
+    const userData = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.user_type,
+      userType: user.user_type,
+      bio: user.bio,
+      experience: user.experience,
+      speciality: user.speciality,
+      isVerified: user.is_verified,
+      recipesCount: user.recipes_count,
+      followersCount: user.followers_count,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at
+    };
+
+    res.json({
+      success: true,
+      message: 'Profile fetched successfully',
+      user: userData
+    });
+
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// GET endpoint to fetch any user's profile by ID (public profiles)
+app.get('/api/users/profile/:userId', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Validate userId is a number
+    if (!userId || isNaN(parseInt(userId))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID'
+      });
+    }
+    
+    const [userResult] = await pool.execute(
+      `SELECT 
+        id,
+        username,
+        first_name,
+        last_name,
+        user_type,
+        bio,
+        experience,
+        speciality,
+        is_verified,
+        recipes_count,
+        followers_count,
+        created_at
+      FROM users 
+      WHERE id = ?`,
+      [parseInt(userId)]
+    );
+
+    if (userResult.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const user = userResult[0];
+    const userData = {
+      id: user.id,
+      username: user.username,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.user_type,
+      userType: user.user_type,
+      bio: user.bio,
+      experience: user.experience,
+      speciality: user.speciality,
+      isVerified: user.is_verified,
+      recipesCount: user.recipes_count,
+      followersCount: user.followers_count,
+      createdAt: user.created_at,
+      isOwnProfile: req.user.id === parseInt(userId)
+    };
+
+    res.json({
+      success: true,
+      message: 'Profile fetched successfully',
+      user: userData
+    });
+
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// PUT endpoint to update user profile
+app.put('/api/users/profile', authenticateToken, async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      bio,
+      experience,
+      speciality
+    } = req.body;
+
+    // Validation
+    if (!firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        message: 'First name and last name are required'
+      });
+    }
+
+    // Update user profile
+    await pool.execute(
+      `UPDATE users SET
+        first_name = ?,
+        last_name = ?,
+        bio = ?,
+        experience = ?,
+        speciality = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?`,
+      [
+        firstName,
+        lastName,
+        bio || null,
+        experience || null,
+        speciality || null,
+        req.user.id
+      ]
+    );
+
+    // Fetch updated user data
+    const [updatedUser] = await pool.execute(
+      `SELECT 
+        id,
+        username,
+        email,
+        first_name,
+        last_name,
+        user_type,
+        bio,
+        experience,
+        speciality,
+        is_verified,
+        recipes_count,
+        followers_count,
+        created_at,
+        updated_at
+      FROM users 
+      WHERE id = ?`,
+      [req.user.id]
+    );
+
+    const userData = {
+      id: updatedUser[0].id,
+      username: updatedUser[0].username,
+      email: updatedUser[0].email,
+      name: `${updatedUser[0].first_name || ''} ${updatedUser[0].last_name || ''}`.trim() || updatedUser[0].username,
+      firstName: updatedUser[0].first_name,
+      lastName: updatedUser[0].last_name,
+      role: updatedUser[0].user_type,
+      userType: updatedUser[0].user_type,
+      bio: updatedUser[0].bio,
+      experience: updatedUser[0].experience,
+      speciality: updatedUser[0].speciality,
+      isVerified: updatedUser[0].is_verified,
+      recipesCount: updatedUser[0].recipes_count,
+      followersCount: updatedUser[0].followers_count,
+      createdAt: updatedUser[0].created_at,
+      updatedAt: updatedUser[0].updated_at
+    };
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: userData
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// PATCH endpoint to update specific profile fields
+app.patch('/api/users/profile', authenticateToken, async (req, res) => {
+  try {
+    const allowedFields = ['firstName', 'lastName', 'bio', 'experience', 'speciality'];
+    const updateFields = {};
+    const updateValues = [];
+    const updateQueries = [];
+
+    // Build dynamic update query
+    Object.keys(req.body).forEach(key => {
+      if (allowedFields.includes(key) && req.body[key] !== undefined) {
+        const dbField = key === 'firstName' ? 'first_name' : 
+                       key === 'lastName' ? 'last_name' : key;
+        updateFields[dbField] = req.body[key];
+        updateQueries.push(`${dbField} = ?`);
+        updateValues.push(req.body[key]);
+      }
+    });
+
+    if (updateQueries.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid fields to update'
+      });
+    }
+
+    // Add updated_at and user id
+    updateQueries.push('updated_at = CURRENT_TIMESTAMP');
+    updateValues.push(req.user.id);
+
+    const updateQuery = `UPDATE users SET ${updateQueries.join(', ')} WHERE id = ?`;
+    
+    await pool.execute(updateQuery, updateValues);
+
+    // Fetch updated user data
+    const [updatedUser] = await pool.execute(
+      `SELECT 
+        id,
+        username,
+        email,
+        first_name,
+        last_name,
+        user_type,
+        bio,
+        experience,
+        speciality,
+        is_verified,
+        recipes_count,
+        followers_count,
+        created_at,
+        updated_at
+      FROM users 
+      WHERE id = ?`,
+      [req.user.id]
+    );
+
+    const userData = {
+      id: updatedUser[0].id,
+      username: updatedUser[0].username,
+      email: updatedUser[0].email,
+      name: `${updatedUser[0].first_name || ''} ${updatedUser[0].last_name || ''}`.trim() || updatedUser[0].username,
+      firstName: updatedUser[0].first_name,
+      lastName: updatedUser[0].last_name,
+      role: updatedUser[0].user_type,
+      userType: updatedUser[0].user_type,
+      bio: updatedUser[0].bio,
+      experience: updatedUser[0].experience,
+      speciality: updatedUser[0].speciality,
+      isVerified: updatedUser[0].is_verified,
+      recipesCount: updatedUser[0].recipes_count,
+      followersCount: updatedUser[0].followers_count,
+      createdAt: updatedUser[0].created_at,
+      updatedAt: updatedUser[0].updated_at
+    };
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: userData,
+      updatedFields: Object.keys(updateFields)
+    });
+
+  } catch (error) {
+    console.error('Patch profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
 app.get('/api/users/:username', async (req, res) => {
   try {
     const { username } = req.params;
@@ -983,10 +1309,18 @@ app.delete('/api/recipes/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/recipes/my-recipes', authenticateToken, async (req, res) => {
+app.get('/api/recipes/user/my-recipes', authenticateToken, async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    // Ensure we always return JSON, even for errors
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
     const [recipes] = await pool.execute(`
       SELECT 
@@ -994,48 +1328,597 @@ app.get('/api/recipes/my-recipes', authenticateToken, async (req, res) => {
         u.username as author_username,
         u.first_name,
         u.last_name,
-        u.user_type as author_role,
-        COUNT(DISTINCT rl.id) as likes_count,
-        COUNT(DISTINCT rc.id) as comments_count
+        u.user_type as author_role
       FROM recipes r
       JOIN users u ON r.user_id = u.id
-      LEFT JOIN recipe_likes rl ON r.id = rl.recipe_id
-      LEFT JOIN recipe_comments rc ON r.id = rc.recipe_id
       WHERE r.user_id = ?
-      GROUP BY r.id
       ORDER BY r.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [req.user.id, parseInt(limit), parseInt(offset)]);
+    `, [req.user.id]);
 
     const formattedRecipes = recipes.map(recipe => ({
       id: recipe.id,
       title: recipe.title,
       description: recipe.description,
       image: recipe.image_url ? `${req.protocol}://${req.get('host')}/${recipe.image_url}` : null,
-      author: `${recipe.first_name} ${recipe.last_name}`,
-      authorRole: recipe.author_role,
+      author: {
+        username: recipe.author_username,
+        name: `${recipe.first_name} ${recipe.last_name}`,
+        role: recipe.author_role
+      },
       cookTime: recipe.cook_time,
+      prepTime: recipe.prep_time,
+      servings: recipe.servings,
       difficulty: recipe.difficulty_level,
       category: recipe.category,
-      likes: recipe.likes_count,
-      commentsCount: recipe.comments_count,
-      isPublished: recipe.is_published,
-      createdAt: recipe.created_at
+      cuisine: recipe.cuisine,
+      tags: recipe.tags ? recipe.tags.split(',') : [],
+      nutritionInfo: recipe.nutrition_info ? JSON.parse(recipe.nutrition_info) : null,
+      createdAt: recipe.created_at,
+      updatedAt: recipe.updated_at,
+      isPublished: recipe.is_published
     }));
 
     res.json({
       success: true,
-      recipes: formattedRecipes
+      recipes: formattedRecipes,
+      total: formattedRecipes.length
     });
+
   } catch (error) {
-    console.error('Get my recipes error:', error);
+    console.error('Get user recipes error:', error);
+    
+    // Ensure we return JSON even for server errors
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Edit Recipe Endpoint
+app.put('/api/recipes/:id', authenticateToken, async (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'application/json');
+    
+    const recipeId = req.params.id;
+    const userId = req.user.id;
+    
+    // Validate recipe ownership
+    const [ownerCheck] = await pool.execute(
+      'SELECT user_id FROM recipes WHERE id = ?',
+      [recipeId]
+    );
+    
+    if (ownerCheck.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found'
+      });
+    }
+    
+    if (ownerCheck[0].user_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to edit this recipe'
+      });
+    }
+    
+    const {
+      title,
+      description,
+      category,
+      cuisine,
+      difficulty_level,
+      cook_time,
+      prep_time,
+      servings,
+      tags,
+      image_url,
+      nutrition_info,
+      is_published,
+      ingredients,
+      instructions
+    } = req.body;
+    
+    // Update recipe
+    await pool.execute(`
+      UPDATE recipes SET
+        title = ?,
+        description = ?,
+        category = ?,
+        cuisine = ?,
+        difficulty_level = ?,
+        cook_time = ?,
+        prep_time = ?,
+        servings = ?,
+        tags = ?,
+        image_url = ?,
+        nutrition_info = ?,
+        is_published = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [
+      title,
+      description,
+      category,
+      cuisine,
+      difficulty_level,
+      cook_time,
+      prep_time,
+      servings,
+      tags,
+      image_url,
+      nutrition_info ? JSON.stringify(nutrition_info) : null,
+      is_published,
+      recipeId
+    ]);
+    
+    // Update ingredients if provided
+    if (ingredients && Array.isArray(ingredients)) {
+      // Delete existing ingredients
+      await pool.execute('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [recipeId]);
+      
+      // Insert new ingredients
+      for (let i = 0; i < ingredients.length; i++) {
+        const ingredient = ingredients[i];
+        await pool.execute(`
+          INSERT INTO recipe_ingredients 
+          (recipe_id, ingredient_name, quantity, unit, notes, order_index)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+          recipeId,
+          ingredient.name,
+          ingredient.quantity,
+          ingredient.unit,
+          ingredient.notes,
+          i + 1
+        ]);
+      }
+    }
+    
+    // Update instructions if provided
+    if (instructions && Array.isArray(instructions)) {
+      // Delete existing instructions
+      await pool.execute('DELETE FROM recipe_instructions WHERE recipe_id = ?', [recipeId]);
+      
+      // Insert new instructions
+      for (let i = 0; i < instructions.length; i++) {
+        const instruction = instructions[i];
+        await pool.execute(`
+          INSERT INTO recipe_instructions 
+          (recipe_id, step_number, instruction_text, duration_minutes, tips)
+          VALUES (?, ?, ?, ?, ?)
+        `, [
+          recipeId,
+          i + 1,
+          instruction.text,
+          instruction.duration,
+          instruction.tips
+        ]);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'Recipe updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Update recipe error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Delete Recipe Endpoint
+app.delete('/api/recipes/:id', authenticateToken, async (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'application/json');
+    
+    const recipeId = req.params.id;
+    const userId = req.user.id;
+    
+    // Validate recipe ownership
+    const [ownerCheck] = await pool.execute(
+      'SELECT user_id FROM recipes WHERE id = ?',
+      [recipeId]
+    );
+    
+    if (ownerCheck.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found'
+      });
+    }
+    
+    if (ownerCheck[0].user_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this recipe'
+      });
+    }
+    
+    // Delete recipe (cascading deletes will handle related tables)
+    await pool.execute('DELETE FROM recipes WHERE id = ?', [recipeId]);
+    
+    res.json({
+      success: true,
+      message: 'Recipe deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Delete recipe error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Get Single Recipe for Editing
+app.get('/api/recipes/:id/edit', authenticateToken, async (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'application/json');
+    
+    const recipeId = req.params.id;
+    const userId = req.user.id;
+    
+    // Get recipe with ownership check
+    const [recipes] = await pool.execute(`
+      SELECT r.*, u.username, u.first_name, u.last_name
+      FROM recipes r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.id = ? AND r.user_id = ?
+    `, [recipeId, userId]);
+    
+    if (recipes.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found or not authorized'
+      });
+    }
+    
+    const recipe = recipes[0];
+    
+    // Get ingredients
+    const [ingredients] = await pool.execute(`
+      SELECT ingredient_name, quantity, unit, notes
+      FROM recipe_ingredients
+      WHERE recipe_id = ?
+      ORDER BY order_index
+    `, [recipeId]);
+    
+    // Get instructions
+    const [instructions] = await pool.execute(`
+      SELECT step_number, instruction_text, duration_minutes, tips
+      FROM recipe_instructions
+      WHERE recipe_id = ?
+      ORDER BY step_number
+    `, [recipeId]);
+    
+    const formattedRecipe = {
+      id: recipe.id,
+      title: recipe.title,
+      description: recipe.description,
+      category: recipe.category,
+      cuisine: recipe.cuisine,
+      difficulty_level: recipe.difficulty_level,
+      cook_time: recipe.cook_time,
+      prep_time: recipe.prep_time,
+      servings: recipe.servings,
+      tags: recipe.tags ? recipe.tags.split(',') : [],
+      image_url: recipe.image_url,
+      nutrition_info: recipe.nutrition_info ? JSON.parse(recipe.nutrition_info) : null,
+      is_published: recipe.is_published,
+      ingredients: ingredients.map(ing => ({
+        name: ing.ingredient_name,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        notes: ing.notes
+      })),
+      instructions: instructions.map(inst => ({
+        step: inst.step_number,
+        text: inst.instruction_text,
+        duration: inst.duration_minutes,
+        tips: inst.tips
+      })),
+      author: {
+        username: recipe.username,
+        name: `${recipe.first_name} ${recipe.last_name}`
+      },
+      created_at: recipe.created_at,
+      updated_at: recipe.updated_at
+    };
+    
+    res.json({
+      success: true,
+      recipe: formattedRecipe
+    });
+    
+  } catch (error) {
+    console.error('Get recipe for edit error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+// Also make sure your authenticateToken middleware returns JSON errors
+
+// DELETE recipe endpoint
+app.delete('/api/recipes/:id', authenticateToken, async (req, res) => {
+  try {
+    const recipeId = req.params.id;
+    
+    // First check if the recipe exists and belongs to the user
+    const [existingRecipe] = await pool.execute(
+      'SELECT id, user_id, image_url FROM recipes WHERE id = ?',
+      [recipeId]
+    );
+    
+    if (existingRecipe.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found'
+      });
+    }
+    
+    // Check if the recipe belongs to the current user
+    if (existingRecipe[0].user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only delete your own recipes'
+      });
+    }
+    
+    // Delete the recipe from database
+    const [deleteResult] = await pool.execute(
+      'DELETE FROM recipes WHERE id = ? AND user_id = ?',
+      [recipeId, req.user.id]
+    );
+    
+    if (deleteResult.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found or could not be deleted'
+      });
+    }
+    
+    // Optional: Delete image file if it exists
+    if (existingRecipe[0].image_url) {
+      const fs = require('fs');
+      const path = require('path');
+      const imagePath = path.join(__dirname, existingRecipe[0].image_url);
+      
+      fs.unlink(imagePath, (err) => {
+        if (err) console.log('Could not delete image file:', err);
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Recipe deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Delete recipe error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting recipe'
+    });
+  }
+});
+
+// UPDATE recipe endpoint
+app.put('/api/recipes/:id', authenticateToken, async (req, res) => {
+  try {
+    const recipeId = req.params.id;
+    const {
+      title,
+      description,
+      category,
+      cuisine,
+      difficulty_level,
+      cook_time,
+      prep_time,
+      servings,
+      tags,
+      nutrition_info,
+      is_published
+    } = req.body;
+    
+    // Validate required fields
+    if (!title || !description || !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, description, and category are required'
+      });
+    }
+    
+    // Check if recipe exists and belongs to user
+    const [existingRecipe] = await pool.execute(
+      'SELECT id, user_id FROM recipes WHERE id = ?',
+      [recipeId]
+    );
+    
+    if (existingRecipe.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found'
+      });
+    }
+    
+    if (existingRecipe[0].user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only update your own recipes'
+      });
+    }
+    
+    // Process tags (convert array to comma-separated string if needed)
+    const processedTags = Array.isArray(tags) ? tags.join(',') : tags;
+    
+    // Process nutrition info (stringify if it's an object)
+    const processedNutritionInfo = typeof nutrition_info === 'object' 
+      ? JSON.stringify(nutrition_info) 
+      : nutrition_info;
+    
+    // Update the recipe
+    const [updateResult] = await pool.execute(`
+      UPDATE recipes SET 
+        title = ?,
+        description = ?,
+        category = ?,
+        cuisine = ?,
+        difficulty_level = ?,
+        cook_time = ?,
+        prep_time = ?,
+        servings = ?,
+        tags = ?,
+        nutrition_info = ?,
+        is_published = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND user_id = ?
+    `, [
+      title,
+      description,
+      category,
+      cuisine || null,
+      difficulty_level || 'Medium',
+      cook_time || null,
+      prep_time || null,
+      servings || null,
+      processedTags || null,
+      processedNutritionInfo || null,
+      is_published !== undefined ? is_published : 1,
+      recipeId,
+      req.user.id
+    ]);
+    
+    if (updateResult.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found or could not be updated'
+      });
+    }
+    
+    // Fetch the updated recipe to return it
+    const [updatedRecipe] = await pool.execute(`
+      SELECT 
+        r.*,
+        u.username as author_username,
+        u.first_name,
+        u.last_name,
+        u.user_type as author_role
+      FROM recipes r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.id = ?
+    `, [recipeId]);
+    
+    const formattedRecipe = {
+      id: updatedRecipe[0].id,
+      title: updatedRecipe[0].title,
+      description: updatedRecipe[0].description,
+      image: updatedRecipe[0].image_url ? `${req.protocol}://${req.get('host')}/${updatedRecipe[0].image_url}` : null,
+      author: {
+        username: updatedRecipe[0].author_username,
+        name: `${updatedRecipe[0].first_name} ${updatedRecipe[0].last_name}`,
+        role: updatedRecipe[0].author_role
+      },
+      cookTime: updatedRecipe[0].cook_time,
+      prepTime: updatedRecipe[0].prep_time,
+      servings: updatedRecipe[0].servings,
+      difficulty: updatedRecipe[0].difficulty_level,
+      category: updatedRecipe[0].category,
+      cuisine: updatedRecipe[0].cuisine,
+      tags: updatedRecipe[0].tags ? updatedRecipe[0].tags.split(',') : [],
+      nutritionInfo: updatedRecipe[0].nutrition_info ? JSON.parse(updatedRecipe[0].nutrition_info) : null,
+      createdAt: updatedRecipe[0].created_at,
+      updatedAt: updatedRecipe[0].updated_at,
+      isPublished: updatedRecipe[0].is_published
+    };
+    
+    res.json({
+      success: true,
+      message: 'Recipe updated successfully',
+      recipe: formattedRecipe
+    });
+    
+  } catch (error) {
+    console.error('Update recipe error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating recipe'
+    });
+  }
+});
+
+// GET single recipe for editing
+app.get('/api/recipes/:id/edit', authenticateToken, async (req, res) => {
+  try {
+    const recipeId = req.params.id;
+    
+    const [recipe] = await pool.execute(`
+      SELECT 
+        r.*,
+        u.username as author_username,
+        u.first_name,
+        u.last_name,
+        u.user_type as author_role
+      FROM recipes r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.id = ? AND r.user_id = ?
+    `, [recipeId, req.user.id]);
+    
+    if (recipe.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found or you do not have permission to edit it'
+      });
+    }
+    
+    const formattedRecipe = {
+      id: recipe[0].id,
+      title: recipe[0].title,
+      description: recipe[0].description,
+      image: recipe[0].image_url ? `${req.protocol}://${req.get('host')}/${recipe[0].image_url}` : null,
+      author: {
+        username: recipe[0].author_username,
+        name: `${recipe[0].first_name} ${recipe[0].last_name}`,
+        role: recipe[0].author_role
+      },
+      cookTime: recipe[0].cook_time,
+      prepTime: recipe[0].prep_time,
+      servings: recipe[0].servings,
+      difficulty: recipe[0].difficulty_level,
+      category: recipe[0].category,
+      cuisine: recipe[0].cuisine,
+      tags: recipe[0].tags ? recipe[0].tags.split(',') : [],
+      nutritionInfo: recipe[0].nutrition_info ? JSON.parse(recipe[0].nutrition_info) : null,
+      createdAt: recipe[0].created_at,
+      updatedAt: recipe[0].updated_at,
+      isPublished: recipe[0].is_published
+    };
+    
+    res.json({
+      success: true,
+      recipe: formattedRecipe
+    });
+    
+  } catch (error) {
+    console.error('Get recipe for edit error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
     });
   }
 });
-
 app.get('/api/recipes/saved', authenticateToken, async (req, res) => {
   try {
     const [savedRecipes] = await pool.execute(`
@@ -1531,6 +2414,7 @@ app.post('/api/recipes', authenticateToken, upload.single('image'), async (req, 
     connection.release();
   }
 });
+
 
 
 // WORKING SOLUTION - Using same GROUP BY pattern as your working single recipe endpoint
