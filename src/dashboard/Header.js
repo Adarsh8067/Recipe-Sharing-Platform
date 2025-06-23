@@ -178,7 +178,7 @@ const user = storedUser ? JSON.parse(storedUser) : {
     { id: 'recipe-feed', label: 'Recipe Feed', icon: Fastfood, color: 'primary', path: '/recipe-feed' },
     { id: 'my-recipes', label: 'My Recipes', icon: MenuBook, color: 'secondary', path: '/my-recipes' },
     { id: 'post-recipe', label: 'Post Recipe', icon: Add, color: 'success', path: '/post-recipe' },
-    { id: 'saved', label: 'Saved Recipes', icon: FavoriteOutlined, color: 'error', path: '/saved' },
+    //{ id: 'saved', label: 'Saved Recipes', icon: FavoriteOutlined, color: 'error', path: '/saved' },
     { id: 'profile', label: 'Profile', icon: Person, color: 'info', path: '/profile' },
     ...(user?.role === 'admin' ? [{ id: 'settings', label: 'Settings', icon: Settings, color: 'warning', path: '/settings' }] : [])
   ];

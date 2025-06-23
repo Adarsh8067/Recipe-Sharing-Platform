@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Typography,
   Box,
@@ -8,9 +8,34 @@ import {
   alpha
 } from '@mui/material';
 import { FavoriteOutlined } from '@mui/icons-material';
+import axios from 'axios';
 
-const SavedRecipes = ({ recipes = [], savedRecipes = [], onToggleSave = () => {} }) => {
+const SavedRecipes = () => {
   const theme = useTheme();
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLikedRecipes = async () => {
+    try {
+      const response = await axios.get('/api/recipes/liked', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.data.success) {
+        setRecipes(response.data.recipes);
+      }
+    } catch (error) {
+      console.error('Error fetching liked recipes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLikedRecipes();
+  }, []);
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ mb: 4 }}>
@@ -23,15 +48,17 @@ const SavedRecipes = ({ recipes = [], savedRecipes = [], onToggleSave = () => {}
           </Typography>
         </Box>
       </Box>
-      
-      {recipes.length === 0 ? (
+
+      {loading ? (
+        <Typography>Loading...</Typography>
+      ) : recipes.length === 0 ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 12, color: 'text.secondary' }}>
           <FavoriteOutlined sx={{ fontSize: 48 }} />
           <Typography variant="h5" sx={{ mt: 4, fontWeight: 600 }}>
             No saved recipes yet
           </Typography>
           <Typography variant="body1" sx={{ mt: 2 }}>
-            Save recipes you love to find them easily later!
+            Like recipes you enjoy to find them easily later!
           </Typography>
         </Box>
       ) : (
@@ -48,8 +75,8 @@ const SavedRecipes = ({ recipes = [], savedRecipes = [], onToggleSave = () => {}
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
                   transform: 'translateY(-8px)',
-                  boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.15)}`,
-                },
+                  boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.15)}`
+                }
               }}
             >
               <Box
@@ -57,7 +84,7 @@ const SavedRecipes = ({ recipes = [], savedRecipes = [], onToggleSave = () => {}
                   height: 200,
                   backgroundImage: `url(${recipe.image || ''})`,
                   backgroundSize: 'cover',
-                  backgroundPosition: 'center',
+                  backgroundPosition: 'center'
                 }}
               />
               <Box sx={{ p: 4 }}>
@@ -71,24 +98,9 @@ const SavedRecipes = ({ recipes = [], savedRecipes = [], onToggleSave = () => {}
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {recipe.author || 'Anonymous'}
                   </Typography>
-                  <Box
-                    component="button"
-                    onClick={() => onToggleSave(recipe.id)}
-                    sx={{
-                      px: 4,
-                      py: 2,
-                      backgroundColor: 'error.main',
-                      color: 'white',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'error.dark',
-                      },
-                    }}
-                  >
-                    Remove
-                  </Box>
+                  <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                    Liked on: {new Date(recipe.likedAt).toLocaleDateString()}
+                  </Typography>
                 </Box>
               </Box>
             </Paper>

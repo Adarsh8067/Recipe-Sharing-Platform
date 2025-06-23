@@ -56,6 +56,7 @@ const Profile = ({ userId = null }) => {
     message: '',
     severity: 'success'
   });
+  const [followersCount, setFollowersCount] = useState(0);
   
   const theme = useTheme();
 
@@ -105,6 +106,23 @@ const Profile = ({ userId = null }) => {
     }
   };
 
+  // Fetch followers count from new endpoint
+  const fetchFollowersCount = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/${id}/followers/count`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFollowersCount(data.followersCount);
+      }
+    } catch (error) {
+      console.error('Error fetching followers count:', error);
+    }
+  };
+
   // API call to update profile
   const updateProfile = async () => {
     try {
@@ -149,6 +167,12 @@ const Profile = ({ userId = null }) => {
   useEffect(() => {
     fetchProfile();
   }, [userId]);
+
+  useEffect(() => {
+    if (currentUser.id) {
+      fetchFollowersCount(currentUser.id);
+    }
+  }, [currentUser.id]);
 
   const handleSave = () => {
     if (!profileData.firstName.trim() || !profileData.lastName.trim()) {
@@ -330,7 +354,7 @@ const Profile = ({ userId = null }) => {
                       />
                       <Chip
                         icon={<Group />}
-                        label={`${currentUser.followersCount || 0} Followers`}
+                        label={`${followersCount || 0} Followers`}
                         variant="outlined"
                         size="small"
                         sx={{ 
@@ -740,7 +764,7 @@ const Profile = ({ userId = null }) => {
                                 Followers
                               </Typography>
                               <Typography variant="body1" fontWeight={600}>
-                                {currentUser.followersCount || 0}
+                                {followersCount || 0}
                               </Typography>
                             </Box>
                           </Box>
