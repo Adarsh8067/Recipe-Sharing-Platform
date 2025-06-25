@@ -125,7 +125,6 @@ app.post('/api/auth/login', async (req, res) => {
         message: 'Invalid email or password'
       });
     }
-
     const token = generateToken(user.id);
     const userData = {
       id: user.id,
@@ -143,7 +142,6 @@ app.post('/api/auth/login', async (req, res) => {
       recipesCount: user.recipes_count,
       followersCount: user.followers_count
     };
-
     res.json({
       success: true,
       message: 'Login successful',
