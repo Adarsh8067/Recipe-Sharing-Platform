@@ -41,10 +41,20 @@ import {
 import { styled, keyframes } from '@mui/material/styles';
 
 // Enhanced styled components with animations
-const StyledAppBar = styled(AppBar)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+const AnimatedAppBar = styled(AppBar)(({ theme }) => ({
+  background: 'linear-gradient(270deg, #6dd5ed, #2193b0, #6dd5ed)',
+  backgroundSize: '600% 600%',
+  animation: 'gradientMove 12s ease-in-out infinite',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+  transition: 'box-shadow 0.4s',
+  '&:hover': {
+    boxShadow: '0 12px 40px 0 rgba(33,147,176,0.18)',
+  },
+  '@keyframes gradientMove': {
+    '0%': { backgroundPosition: '0% 50%' },
+    '50%': { backgroundPosition: '100% 50%' },
+    '100%': { backgroundPosition: '0% 50%' },
+  },
 }));
 
 const pulseAnimation = keyframes`
@@ -96,12 +106,29 @@ const NotificationBadge = styled(Badge)(({ theme }) => ({
 const StyledDrawer = styled(Drawer)(({ theme }) => ({
   '& .MuiDrawer-paper': {
     width: 280,
-    background: `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.background.paper, 0.98)} 100%)`,
-    backdropFilter: 'blur(10px)',
-    border: 'none',
-    boxShadow: '4px 0 20px rgba(0,0,0,0.08)',
+    minHeight: '100vh',
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    background: `linear-gradient(180deg, ${alpha(theme.palette.primary.light, 0.12)} 0%, ${alpha(theme.palette.background.paper, 0.98)} 100%)`,
+    borderRight: `2px solid ${alpha(theme.palette.primary.main, 0.08)}`,
+    boxShadow: '4px 0 32px 0 rgba(33,147,176,0.10)',
+    borderRadius: '0 24px 24px 0',
+    paddingTop: theme.spacing(2),
+    paddingBottom: theme.spacing(2),
     animation: `${slideInLeft} 0.3s ease-out`,
   },
+}));
+
+const SidebarLogo = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: theme.spacing(2, 0, 2, 0),
+  marginBottom: theme.spacing(2),
+  borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
 }));
 
 const StyledListItemButton = styled(ListItemButton)(({ theme, active }) => ({
@@ -134,6 +161,37 @@ const StyledListItemButton = styled(ListItemButton)(({ theme, active }) => ({
       background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.2)} 0%, ${alpha(theme.palette.secondary.main, 0.2)} 100%)`,
     },
   }),
+}));
+
+const SidebarIcon = styled(ListItemIcon)(({ theme }) => ({
+  transition: 'transform 0.3s, box-shadow 0.3s',
+  '&:hover': {
+    transform: 'scale(1.18)',
+    boxShadow: `0 4px 16px ${alpha(theme.palette.primary.main, 0.18)}`,
+  },
+}));
+
+const MainContentFade = styled(Box)(({ theme }) => ({
+  animation: 'fadeInMain 1.2s cubic-bezier(0.4,0,0.2,1)',
+  '@keyframes fadeInMain': {
+    '0%': { opacity: 0, transform: 'translateY(40px)' },
+    '100%': { opacity: 1, transform: 'translateY(0)' },
+  },
+}));
+
+const ShakingBell = styled(Notifications)(({ theme }) => ({
+  transition: 'all 0.2s',
+  '&:hover': {
+    animation: 'shakeBell 0.7s cubic-bezier(0.4,0,0.2,1)',
+  },
+  '@keyframes shakeBell': {
+    '0%': { transform: 'rotate(0deg)' },
+    '20%': { transform: 'rotate(-15deg)' },
+    '40%': { transform: 'rotate(10deg)' },
+    '60%': { transform: 'rotate(-10deg)' },
+    '80%': { transform: 'rotate(8deg)' },
+    '100%': { transform: 'rotate(0deg)' },
+  },
 }));
 
 const Header = ({ currentUser, onSearch, children }) => {
@@ -187,7 +245,7 @@ const user = storedUser ? JSON.parse(storedUser) : {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <StyledAppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
+      <AnimatedAppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Restaurant sx={{ fontSize: 32, color: 'white' }} />
@@ -195,7 +253,6 @@ const user = storedUser ? JSON.parse(storedUser) : {
               RecipeShare
             </Typography>
           </Box>
-          
           <Box sx={{ flexGrow: 1, maxWidth: 600, mx: 4 }}>
             <SearchTextField
               fullWidth
@@ -209,18 +266,26 @@ const user = storedUser ? JSON.parse(storedUser) : {
                   </InputAdornment>
                 ),
               }}
+              sx={{
+                boxShadow: '0 2px 12px 0 rgba(33,147,176,0.08)',
+                '& .MuiOutlinedInput-root': {
+                  transition: 'all 0.3s',
+                  '&.Mui-focused': {
+                    boxShadow: '0 4px 24px 0 rgba(33,147,176,0.18)',
+                    transform: 'scale(1.04)',
+                  },
+                },
+              }}
             />
           </Box>
-          
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Tooltip title="Notifications" arrow>
               <IconButton color="inherit">
                 <NotificationBadge badgeContent={3} color="error">
-                  <Notifications />
+                  <ShakingBell />
                 </NotificationBadge>
               </IconButton>
             </Tooltip>
-            
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <AnimatedAvatar
                 onClick={(e) => setAnchorEl(e.currentTarget)}
@@ -228,7 +293,6 @@ const user = storedUser ? JSON.parse(storedUser) : {
               >
                 {user.firstName?.[0]}{user.lastName?.[0]}
               </AnimatedAvatar>
-              
               <Box sx={{ display: { xs: 'none', md: 'block' } }}>
                 <Typography variant="body1" sx={{ fontWeight: 600, color: 'white' }}>
                   {user.name}
@@ -240,7 +304,6 @@ const user = storedUser ? JSON.parse(storedUser) : {
                   </Typography>
                 </Box>
               </Box>
-              
               <IconButton 
                 color="inherit"
                 onClick={(e) => setAnchorEl(e.currentTarget)}
@@ -250,7 +313,7 @@ const user = storedUser ? JSON.parse(storedUser) : {
             </Box>
           </Box>
         </Toolbar>
-      </StyledAppBar>
+      </AnimatedAppBar>
 
       <Menu
         anchorEl={anchorEl}
@@ -278,8 +341,13 @@ const user = storedUser ? JSON.parse(storedUser) : {
         variant="permanent"
         open={drawerOpen}
       >
-        <Toolbar />
-        <Box sx={{ overflow: 'auto', pt: 2 }}>
+        <SidebarLogo>
+          <Restaurant sx={{ fontSize: 32, color: 'primary.main', mr: 1 }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: 1 }}>
+            RecipeShare
+          </Typography>
+        </SidebarLogo>
+        <Box sx={{ flex: 1, overflow: 'auto', pt: 1 }}>
           <List>
             {sidebarItems.map((item, index) => {
               const Icon = item.icon;
@@ -290,19 +358,28 @@ const user = storedUser ? JSON.parse(storedUser) : {
                       <StyledListItemButton
                         active={activeTab === item.id ? 1 : 0}
                         onClick={() => navigate(item.path)}
+                        sx={{
+                          mb: 1.5,
+                          py: 1.5,
+                          px: 2.5,
+                          boxShadow: activeTab === item.id ? `0 4px 16px ${alpha(theme.palette.primary.main, 0.10)}` : 'none',
+                          border: activeTab === item.id ? `1.5px solid ${alpha(theme.palette.primary.main, 0.18)}` : '1.5px solid transparent',
+                        }}
                       >
-                        <ListItemIcon>
+                        <SidebarIcon>
                           <Icon sx={{ 
                             color: activeTab === item.id ? `${item.color}.main` : 'text.secondary',
                             transition: 'all 0.3s ease',
                           }} />
-                        </ListItemIcon>
+                        </SidebarIcon>
                         <ListItemText 
                           primary={item.label}
                           sx={{
                             '& .MuiListItemText-primary': {
-                              fontWeight: activeTab === item.id ? 600 : 400,
+                              fontWeight: activeTab === item.id ? 700 : 400,
                               color: activeTab === item.id ? `${item.color}.main` : 'text.primary',
+                              letterSpacing: 0.5,
+                              fontSize: '1.08rem',
                             }
                           }}
                         />
@@ -317,7 +394,7 @@ const user = storedUser ? JSON.parse(storedUser) : {
       </StyledDrawer>
 
       {/* Main content area */}
-      <Box
+      <MainContentFade
         component="main"
         sx={{
           flexGrow: 1,
@@ -328,7 +405,7 @@ const user = storedUser ? JSON.parse(storedUser) : {
       >
         <Toolbar />
         {children}
-      </Box>
+      </MainContentFade>
     </Box>
   );
 };

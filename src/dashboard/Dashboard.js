@@ -116,6 +116,42 @@ const TrendingItem = styled(ListItem)(({ theme }) => ({
   }
 }));
 
+const AnimatedBackground = styled('div')(({ theme }) => ({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
+  zIndex: -1,
+  background: 'linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%)',
+  animation: 'bgMove 16s ease-in-out infinite alternate',
+  '@keyframes bgMove': {
+    '0%': { backgroundPosition: '0% 50%' },
+    '100%': { backgroundPosition: '100% 50%' },
+  },
+  backgroundSize: '200% 200%',
+}));
+
+const FloatingBanner = styled('div')(({ theme }) => ({
+  position: 'fixed',
+  top: 24,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+  color: 'white',
+  borderRadius: 16,
+  padding: '10px 32px',
+  fontWeight: 700,
+  fontSize: '1.1rem',
+  boxShadow: `0 4px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
+  zIndex: 10,
+  animation: 'fadeInDown 1.2s cubic-bezier(0.4,0,0.2,1)',
+  '@keyframes fadeInDown': {
+    '0%': { opacity: 0, transform: 'translate(-50%, -40px)' },
+    '100%': { opacity: 1, transform: 'translate(-50%, 0)' },
+  },
+}));
+
 // Counter Hook
 const useCounter = (end, duration = 2000) => {
   const [count, setCount] = useState(0);
@@ -152,14 +188,14 @@ const mockStats = {
 
 const mockTrendingData = {
   mostLikedRecipes: [
-    { id: 1, title: "Perfect Chocolate Chip Cookies", author: "Baker Jane", likes: 456, image: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=100" },
-    { id: 2, title: "Authentic Ramen Bowl", author: "Chef Tanaka", likes: 398, image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=100" },
-    { id: 3, title: "Mediterranean Quinoa Salad", author: "Health Guru", likes: 367, image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=100" },
+    { id: 1, title: "Perfect Chocolate Chip Cookies", author: "Vishal", likes: 456, image: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=100" },
+    { id: 2, title: "Authentic Ramen Bowl", author: "Adarsh", likes: 398, image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=100" },
+    { id: 3, title: "Mediterranean Quinoa Salad", author: "Ashrith", likes: 367, image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=100" },
   ],
   mostFollowedChefs: [
-    { id: 1, name: "Gordon Ramsay Jr.", followers: 1234, recipes: 89, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100" },
-    { id: 2, name: "Julia Martinez", followers: 987, recipes: 67, avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100" },
-    { id: 3, name: "Marco Chen", followers: 876, recipes: 54, avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100" },
+    { id: 1, name: "Vinith sai", followers: 1234, recipes: 89, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100" },
+    { id: 2, name: "LiKi", followers: 987, recipes: 67, avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100" },
+    { id: 3, name: "Vinay", followers: 876, recipes: 54, avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100" },
   ]
 };
 
@@ -169,7 +205,7 @@ const mockRecipes = [
     title: "Spicy Thai Basil Chicken",
     description: "Authentic Thai dish with fresh basil and chilies",
     image: "https://images.unsplash.com/photo-1559314809-0f31657def5e?w=400",
-    author: "Chef Maria",
+    author: "Adarsh",
     authorRole: "chef",
     cookTime: "25 mins",
     difficulty: "Medium",
@@ -182,7 +218,7 @@ const mockRecipes = [
     title: "Classic Margherita Pizza",
     description: "Traditional Italian pizza with fresh mozzarella and basil",
     image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400",
-    author: "John Smith",
+    author: "Vishal",
     authorRole: "user",
     cookTime: "45 mins",
     difficulty: "Hard",
@@ -195,7 +231,7 @@ const mockRecipes = [
     title: "Chocolate Lava Cake",
     description: "Decadent dessert with molten chocolate center",
     image: "https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=400",
-    author: "Pastry Chef Anna",
+    author: "Ashrith",
     authorRole: "chef",
     cookTime: "30 mins",
     difficulty: "Medium",
@@ -204,6 +240,14 @@ const mockRecipes = [
     createdAt: "2024-06-13"
   }
 ];
+
+const TrendingAvatar = styled(Avatar)(({ theme }) => ({
+  transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s',
+  '&:hover': {
+    transform: 'scale(1.15)',
+    boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.18)}`,
+  },
+}));
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -243,163 +287,169 @@ const Dashboard = () => {
   };
 
   const renderDashboardHome = () => (
-    <div style={{ padding: '30px', Width: '200px', marginLeft: '30vw' , marginTop: '10vh' }}>
-    <Box>
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Grow in timeout={400}>
-            <StatsCard color="primary">
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Restaurant sx={{ fontSize: 40, mr: 2 }} />
-                  <Box>
-                    <AnimatedNumber variant="h4">
-                      {totalRecipesCount.toLocaleString()}
-                    </AnimatedNumber>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      Total Recipes
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </StatsCard>
-          </Grow>
-        </Grid>
+    <>
+      <AnimatedBackground />
+      <FloatingBanner>
+        Welcome back, {currentUser.firstName || currentUser.name || 'User'}! 🚀
+      </FloatingBanner>
+      <div style={{ padding: '30px', Width: '200px', marginLeft: '30vw' , marginTop: '10vh', transition: 'all 0.7s cubic-bezier(0.4,0,0.2,1)' }}>
+        <Box>
+          {/* Statistics Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Grow in timeout={400}>
+                <StatsCard color="primary" sx={{ '&:hover': { boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.18)}`, transform: 'translateY(-12px) scale(1.04)' } }}>
+                  <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Restaurant sx={{ fontSize: 40, mr: 2 }} />
+                      <Box>
+                        <AnimatedNumber variant="h4">
+                          {totalRecipesCount.toLocaleString()}
+                        </AnimatedNumber>
+                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                          Total Recipes
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </StatsCard>
+              </Grow>
+            </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Grow in timeout={600}>
-            <StatsCard color="error">
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Favorite sx={{ fontSize: 40, mr: 2 }} />
-                  <Box>
-                    <AnimatedNumber variant="h4">
-                      {totalLikesCount.toLocaleString()}
-                    </AnimatedNumber>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      Total Likes
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </StatsCard>
-          </Grow>
-        </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Grow in timeout={600}>
+                <StatsCard color="error" sx={{ '&:hover': { boxShadow: `0 8px 32px ${alpha(theme.palette.error.main, 0.18)}`, transform: 'translateY(-12px) scale(1.04)' } }}>
+                  <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Favorite sx={{ fontSize: 40, mr: 2 }} />
+                      <Box>
+                        <AnimatedNumber variant="h4">
+                          {totalLikesCount.toLocaleString()}
+                        </AnimatedNumber>
+                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                          Total Likes
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </StatsCard>
+              </Grow>
+            </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Grow in timeout={800}>
-            <StatsCard color="success">
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Person sx={{ fontSize: 40, mr: 2 }} />
-                  <Box>
-                    <AnimatedNumber variant="h4">
-                      {totalUsersCount.toLocaleString()}
-                    </AnimatedNumber>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      Total Users
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </StatsCard>
-          </Grow>
-        </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Grow in timeout={800}>
+                <StatsCard color="success" sx={{ '&:hover': { boxShadow: `0 8px 32px ${alpha(theme.palette.success.main, 0.18)}`, transform: 'translateY(-12px) scale(1.04)' } }}>
+                  <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                    <Box sx={{ display: 'flex',width:'100%', alignItems: 'center', mb: 1 }}>
+                      <Person sx={{ fontSize: 40, mr: 2 }} />
+                      <Box>
+                        <AnimatedNumber variant="h4">
+                          {totalUsersCount.toLocaleString()}
+                        </AnimatedNumber>
+                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                          Total Users
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </StatsCard>
+              </Grow>
+            </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Grow in timeout={1000}>
-            <StatsCard color="warning">
-              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Visibility sx={{ fontSize: 40, mr: 2 }} />
-                  <Box>
-                    <AnimatedNumber variant="h4">
-                      {totalViewsCount.toLocaleString()}
-                    </AnimatedNumber>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      Total Views
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </StatsCard>
-          </Grow>
-        </Grid>
-      </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Grow in timeout={1000}>
+                <StatsCard color="warning" sx={{ '&:hover': { boxShadow: `0 8px 32px ${alpha(theme.palette.warning.main, 0.18)}`, transform: 'translateY(-12px) scale(1.04)' } }}>
+                  <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Visibility sx={{ fontSize: 40, mr: 2 }} />
+                      <Box>
+                        <AnimatedNumber variant="h4">
+                          {totalViewsCount.toLocaleString()}
+                        </AnimatedNumber>
+                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                          Total Views
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </StatsCard>
+              </Grow>
+            </Grid>
+          </Grid>
 
-      {/* Trending Lists */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Fade in timeout={1200}>
-            <StatsListContainer>
-              <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', fontWeight: 700 }}>
-                <TrendingUp sx={{ mr: 2, color: 'primary.main' }} />
-                Most Liked Recipes
-              </Typography>
-              <List>
-                {mockTrendingData.mostLikedRecipes.map((recipe, index) => (
-                  <Slide in timeout={1400 + index * 200} direction="up" key={recipe.id}>
-                    <TrendingItem>
-                      <Avatar 
-                        src={recipe.image} 
-                        sx={{ mr: 2, width: 50, height: 50 }}
-                      />
-                      <ListItemText
-                        primary={recipe.title}
-                        secondary={`by ${recipe.author}`}
-                        primaryTypographyProps={{ fontWeight: 600 }}
-                      />
-                      <Chip
-                        icon={<Favorite />}
-                        label={recipe.likes}
-                        color="error"
-                        size="small"
-                      />
-                    </TrendingItem>
-                  </Slide>
-                ))}
-              </List>
-            </StatsListContainer>
-          </Fade>
-        </Grid>
+          {/* Trending Lists */}
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Fade in timeout={1200}>
+                <StatsListContainer>
+                  <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', fontWeight: 700 }}>
+                    <TrendingUp sx={{ mr: 2, color: 'primary.main' }} />
+                    Most Liked Recipes
+                  </Typography>
+                  <List>
+                    {mockTrendingData.mostLikedRecipes.map((recipe, index) => (
+                      <Slide in timeout={1400 + index * 200} direction="up" key={recipe.id}>
+                        <TrendingItem>
+                          <TrendingAvatar 
+                            src={recipe.image} 
+                            sx={{ mr: 2, width: 50, height: 50 }}
+                          />
+                          <ListItemText
+                            primary={recipe.title}
+                            secondary={`by ${recipe.author}`}
+                            primaryTypographyProps={{ fontWeight: 600 }}
+                          />
+                          <Chip
+                            icon={<Favorite />}
+                            label={recipe.likes}
+                            color="error"
+                            size="small"
+                          />
+                        </TrendingItem>
+                      </Slide>
+                    ))}
+                  </List>
+                </StatsListContainer>
+              </Fade>
+            </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Fade in timeout={1400}>
-            <StatsListContainer>
-              <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', fontWeight: 700 }}>
-                <EmojiEvents sx={{ mr: 2, color: 'warning.main' }} />
-                Most Followed Chefs
-              </Typography>
-              <List>
-                {mockTrendingData.mostFollowedChefs.map((chef, index) => (
-                  <Slide in timeout={1600 + index * 200} direction="up" key={chef.id}>
-                    <TrendingItem>
-                      <Avatar 
-                        src={chef.avatar} 
-                        sx={{ mr: 2, width: 50, height: 50 }}
-                      />
-                      <ListItemText
-                        primary={chef.name}
-                        secondary={`${chef.recipes} recipes`}
-                        primaryTypographyProps={{ fontWeight: 600 }}
-                      />
-                      <Chip
-                        icon={<Person />}
-                        label={`${chef.followers} followers`}
-                        color="primary"
-                        size="small"
-                      />
-                    </TrendingItem>
-                  </Slide>
-                ))}
-              </List>
-            </StatsListContainer>
-          </Fade>
-        </Grid>
-      </Grid>
-    </Box>
-    </div>
+            <Grid item xs={12} md={6}>
+  <Fade in timeout={1400}>
+    <StatsListContainer sx={{ minWidth: 400 /* or width: 450 */ }}>
+      <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', fontWeight: 700 }}>
+        <EmojiEvents sx={{ mr: 2, color: 'warning.main' }} />
+        Most Followed Chefs
+      </Typography>
+      <List>
+        {mockTrendingData.mostFollowedChefs.map((chef, index) => (
+          <Slide in timeout={1600 + index * 200} direction="up" key={chef.id}>
+            <TrendingItem>
+              <TrendingAvatar 
+                src={chef.avatar} 
+                sx={{ mr: 2, width: 50, height: 50 }}
+              />
+              <ListItemText
+                primary={chef.name}
+                secondary={`${chef.recipes} recipes`}
+                primaryTypographyProps={{ fontWeight: 600 }}
+              />
+              <Chip
+                icon={<Person />}
+                label={`${chef.followers} followers`}
+                color="primary"
+                size="small"
+              />
+            </TrendingItem>
+          </Slide>
+        ))}
+      </List>
+    </StatsListContainer>
+  </Fade>
+</Grid>
+          </Grid>
+        </Box>
+      </div>
+    </>
   );
 
   const currentPath = location.pathname;

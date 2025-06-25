@@ -272,7 +272,7 @@ const Profile = ({ userId = null }) => {
   const isOwnProfile = !userId || currentUser.isOwnProfile;
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ position: 'relative', minHeight: '100vh', py: 6, mt: 6 }}>
       <Fade in timeout={800}>
         <Box>
           {/* Header Section */}

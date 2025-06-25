@@ -36,6 +36,8 @@ import {
   VisibilityOff as VisibilityOffIcon
 } from '@mui/icons-material';
 
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80';
+
 const MyRecipes = () => {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -249,7 +251,7 @@ const MyRecipes = () => {
                   sx={{
                     height: 200,
                     bgcolor: recipe.image ? 'transparent' : 'grey.200',
-                    backgroundImage: recipe.image ? `url(${recipe.image})` : 'none',
+                    backgroundImage: `url(${(recipe.image && recipe.image.trim() !== '') ? recipe.image : FALLBACK_IMAGE})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     display: 'flex',
